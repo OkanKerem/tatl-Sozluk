@@ -1,13 +1,18 @@
 
 
 *Application Name:*  tatli-Sozluk 
-# 31015	Okan Kerem Çıtak
-# 31174	Oğuz Karcan
-# 332497	Elif Su SAĞLAM
-# 29377	cem sümer
-# 28995	rana erkan
+ 31015	Okan Kerem Çıtak
+ 31174	Oğuz Karcan
+ 332497	Elif Su SAĞLAM
+ 29377	cem sümer
+ 28995	rana erkan
 
-*Group Members & IDs:* [Your names and student IDs]  
+*Group Members & IDs:*
+ 31015	Okan Kerem Çıtak
+ 31174	Oğuz Karcan
+ 332497	Elif Su SAĞLAM
+ 29377	cem sümer
+ 28995	rana erkan
 
 *Main Purpose:* The app provides a structured forum platform where users can discuss various topics, share opinions, and engage in meaningful conversations. Unlike existing platforms, it offers both anonymous and account-based participation with a clean, mobile-friendly interface.  
 
