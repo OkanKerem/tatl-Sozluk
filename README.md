@@ -9,39 +9,37 @@
  - 29377	cem sümer
  - 28995	rana erkan
 
-*Main Purpose:* The app provides a structured forum platform where users can discuss various topics, share opinions, and engage in meaningful conversations. Unlike existing platforms, it offers both anonymous and account-based participation with a clean, mobile-friendly interface.  
+Main Purpose: The app provides a forum platform where users can discuss various topics, share opinions, and engage in meaningful conversations. Unlike existing platforms, it offers both anonymous and account-based.
 
-*Target Audience:*  
-- Students and young adults who enjoy online discussions  
-- Professionals seeking insights and discussions on various topics  
-- General internet users who prefer forum-style interactions  
-- Users who value anonymity in online discussions  
+Target Audience:  
+- Students and young adults  
+- General internet users who prefer forum-style interactions. 
+- Users who wants to be anonymous.
 
-*Key Features:*  
+Key Features:  
 - Topic-based forum structure with categorized discussions  
 - Anonymous and registered user participation  
 - Upvote/downvote system to highlight quality content  
 - Real-time notifications for topic updates and replies  
-- Moderation tools to manage content and prevent spam  
-- User-friendly mobile-first interface with a simple and fast design  
+- Moderation tools to prevent spam. 
+- User-friendly interface with a simple and fast design  
 
-*Platform:* The app will be developed using Flutter for mobile.  
+Platform: The app will be developed using Flutter for mobile.  
 
-*Data Storage:*  
-- User accounts (securely stored and encrypted)  
+Data Storage:  
 - Posts and comments in various discussion topics  
 - Upvote/downvote interactions  
 - Notification history  
 - Moderation logs and reported content  
 
-*Unique Selling Point:*  
+Unique Selling Point:  
 - Users can choose between anonymous and registered participation  
 - Lightweight, fast, and mobile-first design  
-- Highly customizable user experience with interest-based content filtering  
-- Enhanced moderation tools to ensure a clean and safe discussion environment  
+- Highly customizable user experience
+  
 
-*Challenges:*  
-- Preventing spam and managing inappropriate content effectively  
-- Ensuring data privacy and anonymity while maintaining security  
+Challenges:  
+- Preventing spam. 
+- Ensuring data privacy and anonymity.
 - Implementing real-time updates for posts and interactions  
-- Building an initial user base and fostering an active community
+- Building an initial user base and active users.
