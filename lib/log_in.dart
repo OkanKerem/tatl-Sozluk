@@ -19,7 +19,7 @@ class _LoginPageState extends State<LoginPage> {
     if (_formKey.currentState!.validate()) {
       // Form is valid, proceed with login
       // Navigate to profile page or home screen
-      Navigator.pushReplacementNamed(context, '/profile');
+      Navigator.pushReplacementNamed(context, '/main_page');
     } else {
       // Form validation failed
       ScaffoldMessenger.of(context).showSnackBar(
