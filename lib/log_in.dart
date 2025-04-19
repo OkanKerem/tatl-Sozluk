@@ -18,8 +18,8 @@ class _LoginPageState extends State<LoginPage> {
   void _login() {
     if (_formKey.currentState!.validate()) {
       // Form is valid, proceed with login
-      // Navigate to profile page or home screen
-      Navigator.pushReplacementNamed(context, '/profile');
+      // Navigate to main page
+      Navigator.pushReplacementNamed(context, '/');
     } else {
       // Form validation failed
       ScaffoldMessenger.of(context).showSnackBar(
@@ -174,7 +174,7 @@ class _LoginPageState extends State<LoginPage> {
                     GestureDetector(
                       onTap: () {
                         // Navigate to sign in screen
-                        Navigator.pushNamed(context, '/signin');
+                        Navigator.pushNamed(context, '/signup');
                       },
                       child: Text(
                         "Didn't sign in?",

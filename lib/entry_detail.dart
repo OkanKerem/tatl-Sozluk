@@ -19,16 +19,20 @@ class EntryDetailPage extends StatelessWidget {
     {'text': "fenerbahçeden ayrılmamalıydı.", 'author': "Cem Sümer"},
   ];
 
-  final String entryTitle = "arda güler";
-
   @override
   Widget build(BuildContext context) {
+    // Get the arguments passed from the previous page
+    final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final title = args['title'] as String;
+    final content = args['content'] as String;
+    final count = args['count'] as String;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(context),
+            _buildTopBar(context, title),
             const SizedBox(height: 10),
             _buildPaginationInfo(),
             const SizedBox(height: 10),
@@ -39,15 +43,23 @@ class EntryDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTopBar(BuildContext context) {
+  Widget _buildTopBar(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.arrow_back),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Icon(Icons.arrow_back),
+          ),
           const SizedBox(width: 10),
-          Text(entryTitle, style: AppFonts.entryTitleText),
-          const Spacer(),
+          Expanded(
+            child: Text(
+              title,
+              style: AppFonts.entryTitleText,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
         ],
       ),

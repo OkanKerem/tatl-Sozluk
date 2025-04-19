@@ -200,7 +200,7 @@ class _SignInScreenState extends State<SignInScreen> {
         assetImagePath: _isAssetImage ? _assetImagePath : null,
       );
       
-      Navigator.pushReplacementNamed(context, '/profile', arguments: user);  // should go to home page
+      Navigator.pushReplacementNamed(context, '/');  // Navigate to main page
     } else {
       // Form validation failed
       ScaffoldMessenger.of(context).showSnackBar(  

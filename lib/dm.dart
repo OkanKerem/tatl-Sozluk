@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
 
-class MainPage extends StatelessWidget {
-  const MainPage({super.key});
+class DMPage extends StatelessWidget {
+  const DMPage({super.key});
 
   final List<Map<String, dynamic>> messages = const [
     {
       'fromMe': false,
       'text': "can you send me invite for that entry you mentioned?",
     },
-    {'fromMe': true, 'text': "yes ofc. pls click on it and you’ll see."},
+    {'fromMe': true, 'text': "yes ofc. pls click on it and you'll see."},
     {
       'fromMe': false,
       'text': "Invitation:(What should i do before gym?)",
@@ -19,7 +19,7 @@ class MainPage extends StatelessWidget {
     {
       'fromMe': false,
       'text':
-          "that’s awesome. Also, I liked your entry. Therefore, i’ll give you 10 points as gift!",
+          "that's awesome. Also, I liked your entry. Therefore, i'll give you 10 points as gift!",
       'gift': true,
     },
     {
@@ -52,7 +52,10 @@ class MainPage extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Row(
         children: [
-          const Icon(Icons.arrow_back),
+          GestureDetector(
+            onTap: () => Navigator.pushReplacementNamed(context, '/'),
+            child: const Icon(Icons.arrow_back),
+          ),
           const SizedBox(width: 12),
           const CircleAvatar(child: Icon(Icons.person)),
           const SizedBox(width: 10),
