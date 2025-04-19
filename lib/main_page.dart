@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'utils/colors.dart';
-import 'utils/fonts.dart';
+import 'package:tatli_sozluk/utils/colors.dart';
+import 'package:tatli_sozluk/utils/fonts.dart';
 
 class MainPage extends StatelessWidget {
   const MainPage({Key? key}) : super(key: key);
@@ -13,9 +13,7 @@ class MainPage extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
         color: const Color(0xFFF5EFFF),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
       ),
       child: Stack(
         children: [
@@ -47,15 +45,31 @@ class MainPage extends StatelessWidget {
               children: <Widget>[
                 _buildTopicItem('who wants to be a millionaire', '125'),
                 _buildTopicItem('midnight at pera palas', '30'),
-                _buildTopicItem('tatlı sözlük's database of people to chat', '199'),
-                _buildTopicItem('simple things that make you happy', '280', isHighlighted: true),
+                _buildTopicItem(
+                  "tatlı sözlük's database of people to chat",
+                  '199',
+                ),
+                _buildTopicItem(
+                  'simple things that make you happy',
+                  '280',
+                  isHighlighted: true,
+                ),
                 _buildTopicItem('sapiosexual', '57'),
-                _buildTopicItem('driver's license fee Rising to 10,000 Lira', '23'),
+                _buildTopicItem(
+                  "driver's license fee Rising to 10,000 Lira",
+                  '23',
+                ),
                 _buildTopicItem('arda güler', '12'),
-                _buildTopicItem('january 2023 civil servant salary increase', '10'),
+                _buildTopicItem(
+                  'january 2023 civil servant salary increase',
+                  '10',
+                ),
                 _buildTopicItem('sitting alone in a café', '5'),
                 _buildTopicItem('a mother monkey bathing her baby', '7'),
-                _buildTopicItem('december 11 serbian foreign affairs statement', '20'),
+                _buildTopicItem(
+                  'december 11 serbian foreign affairs statement',
+                  '20',
+                ),
                 _buildTopicItem('post a cat picture for the night', '32'),
                 _buildTopicItem('seagull 1963', '55'),
                 _buildTopicItem('judgment (tv series)', '221'),
@@ -97,9 +111,7 @@ class MainPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: ShapeDecoration(
         color: isSelected ? const Color(0xFF262626) : const Color(0xFFF6F5FA),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: Text(
         text,
@@ -111,7 +123,11 @@ class MainPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTopicItem(String title, String count, {bool isHighlighted = false}) {
+  Widget _buildTopicItem(
+    String title,
+    String count, {
+    bool isHighlighted = false,
+  }) {
     return Container(
       width: 390,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
@@ -157,4 +173,4 @@ class MainPage extends StatelessWidget {
       ),
     );
   }
-} 
+}

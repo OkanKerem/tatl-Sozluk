@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
 
-class MessagesPage extends StatelessWidget {
-  const MessagesPage({super.key});
+class MainPage extends StatelessWidget {
+  const MainPage({super.key});
 
   final List<Map<String, dynamic>> messages = const [
     {
