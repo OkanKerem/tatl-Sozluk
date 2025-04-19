@@ -18,7 +18,7 @@ class User {
   String? assetImagePath; // For asset images
 
   User({
-    required this.username, 
+    required this.username,
     required this.email,
     required this.password,
     this.profilePhoto,
@@ -35,8 +35,8 @@ class SignInScreen extends StatefulWidget {
 }
 
 class _SignInScreenState extends State<SignInScreen> {
-  final _formKey = GlobalKey<FormState>(); 
-  final _usernameController = TextEditingController();  
+  final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   File? _profileImage;
@@ -47,8 +47,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // List of available asset images for avatars
   final List<String> _avatarAssets = [
-    'assets/avatars/girlAvatar.png', 
-    'assets/avatars/boyAvatar.png'
+    'assets/Images/girlAvatar.png',
+    'assets/Images/boyAvatar.png'
   ];
 
   // Function to handle profile photo selection
@@ -82,10 +82,10 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Dialog for entering a network image URL
+  // Dialog for entering a network image UaRL
   void _showNetworkImageDialog() {
     final TextEditingController urlController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -189,7 +189,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // Validate form and submit
   void _validateAndSubmit() {
-    if (_formKey.currentState!.validate()) { 
+    if (_formKey.currentState!.validate()) {
       // Form is valid, create user object and proceed
       final user = User(
         username: _usernameController.text,
@@ -199,43 +199,43 @@ class _SignInScreenState extends State<SignInScreen> {
         profilePhotoUrl: _isNetworkImage ? _imageUrl : null,
         assetImagePath: _isAssetImage ? _assetImagePath : null,
       );
-      
-      Navigator.pushReplacementNamed(context, '/profile', arguments: user);  // should go to home page
+
+      Navigator.pushReplacementNamed(context, '/main_page', arguments: user);  // should go to home page
     } else {
       // Form validation failed
-      ScaffoldMessenger.of(context).showSnackBar(  
-        const SnackBar(content: Text('Please check the form and try again')),  
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please check the form and try again')),
       );
     }
   }
 
   @override
-  void dispose() {    
+  void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  @override   
+  @override
   Widget build(BuildContext context) {
     // Get screen dimensions for responsive sizing
     final screenSize = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       backgroundColor:const Color(0xFFF0E6FF), // Using color from utility class
-      body: Stack(  
+      body: Stack(
         children: [
           // Form in a scrollable container for iPhone compatibility
           Positioned.fill(
-            child: SingleChildScrollView(  
+            child: SingleChildScrollView(
               padding: EdgeInsets.only(
                 top: MediaQuery.of(context).padding.top + 50, // Account for safe area
-                left: 32, 
-                right: 32, 
+                left: 32,
+                right: 32,
                 bottom: 24
               ),
-              child: Form(  
+              child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -243,7 +243,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     // Welcome title - centered like in ProfilePage
                     SizedBox(
                       width: screenSize.width,
-                      child: Text(    
+                      child: Text(
                         'Welcome',
                         style: TextStyle(
                           fontSize: 32,
@@ -254,9 +254,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Please sign in subtitle
                     SizedBox(
                       width: screenSize.width,
@@ -271,11 +271,11 @@ class _SignInScreenState extends State<SignInScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Username field with positioning similar to profile entries
-                    Align(  
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text('username', style: AppFonts.infoLabelText),
                     ),
@@ -286,14 +286,14 @@ class _SignInScreenState extends State<SignInScreen> {
                         color: Colors.white.withOpacity(0.7), // Reduced opacity from 0.7 to 0.3
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: TextFormField(  
+                      child: TextFormField(
                         controller: _usernameController,
                         style: AppFonts.usernameText,
                         decoration: const InputDecoration(
-                          border: InputBorder.none,  
+                          border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
-                        validator: (value) { 
+                        validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Username is required';
                           }
@@ -303,9 +303,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         },
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Email field
                     Align(
                       alignment: Alignment.centerLeft,
@@ -321,24 +321,24 @@ class _SignInScreenState extends State<SignInScreen> {
                       child: TextFormField(
                         controller: _emailController,
                         style: AppFonts.usernameText,
-                        keyboardType: TextInputType.emailAddress,  
+                        keyboardType: TextInputType.emailAddress,
                         decoration: const InputDecoration(
-                          border: InputBorder.none,  
+                          border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Email is required';
-                          } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {  
+                          } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
-                          return null;  
+                          return null;
                         }
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Password field
                     Align(
                       alignment: Alignment.centerLeft,
@@ -368,14 +368,14 @@ class _SignInScreenState extends State<SignInScreen> {
                         },
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Profile photo section
                     Text('profile photo', style: AppFonts.infoLabelText),
                     const SizedBox(height: 16),
                     Center(
-                      child: GestureDetector( 
+                      child: GestureDetector(
                         onTap: _handleProfilePhoto,
                         child: Container(
                           width: 96,
@@ -409,9 +409,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Sign in button with position adjusted for text
                     SizedBox(
                       width: screenSize.width - 64,
@@ -427,32 +427,32 @@ class _SignInScreenState extends State<SignInScreen> {
                         ),
                         child: Text(
                           'sign in',
-                          style: AppFonts.deleteButtonText, 
+                          style: AppFonts.deleteButtonText,
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
           ),
-          
+
           // "I'm already signed, log in" text - positioned at the bottom with safe area
           Positioned(
             bottom: MediaQuery.of(context).padding.bottom + 20,
             left: 0,
             right: 0,
             child: Center(
-              child: GestureDetector(  
+              child: GestureDetector(
                 onTap: () {
                   // Navigate to login screen
                   Navigator.pushNamed(context, '/login');
                 },
                 child: Text(
                   "I'm already signed, log in",
-                  style: AppFonts.entryBodyText.copyWith( 
+                  style: AppFonts.entryBodyText.copyWith(
                     decoration: TextDecoration.underline,
                     color: AppColors.primary,
                   ),

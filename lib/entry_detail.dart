@@ -48,7 +48,7 @@ class EntryDetailPage extends StatelessWidget {
           const SizedBox(width: 10),
           Text(entryTitle, style: AppFonts.entryTitleText),
           const Spacer(),
-          IconButton(icon: const Icon(Icons.edit), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.edit), onPressed: () {Navigator.pop(context);}),
         ],
       ),
     );

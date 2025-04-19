@@ -57,9 +57,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/Images/
-    - assets/avatars/
-    - assets/avatars/boyAvatar.png
-    - assets/avatars/girlAvatar.png
+
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
