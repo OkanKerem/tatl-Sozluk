@@ -3,16 +3,11 @@ import 'package:tatli_sozluk/utils/routes.dart'; // AppRoutes burada tanımlıys
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
-  // This is essential for using SharedPreferences before runApp
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Pre-initialize SharedPreferences
   final prefs = await SharedPreferences.getInstance();
-  print('SharedPreferences initialized');
   
-  // Print any existing users for debugging
   String? existingUsers = prefs.getString('registered_users');
-  print('Existing users in storage: $existingUsers');
   
   runApp(MyApp());
 }
