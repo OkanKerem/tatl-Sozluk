@@ -20,17 +20,23 @@ class RandomEntryPage extends StatelessWidget {
     final random = Random();
     return Scaffold(
       backgroundColor: const Color(0xFFF5EFFF),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF5EFFF),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Random Entry',
+          style: AppFonts.entryTitleText.copyWith(fontSize: 24, color: AppColors.primary),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                "Random Entry",
-                style: AppFonts.entryTitleText.copyWith(fontSize: 24),
-              ),
-            ),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -81,4 +87,3 @@ class RandomEntryPage extends StatelessWidget {
     );
   }
 }
-
