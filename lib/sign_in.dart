@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:io';  // For File operations
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';  // For handling network images
-
-// Using your utility classes
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
-
-
+import 'package:tatli_sozluk/services/auth_service.dart';
 
 // User model class - updated to include profilePhotoUrl and assetImagePath
 class User {
@@ -39,11 +36,13 @@ class _SignInScreenState extends State<SignInScreen> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
   File? _profileImage;
   String? _imageUrl; // To store network image URL
   String? _assetImagePath; // To store asset image path
   bool _isNetworkImage = false;
   bool _isAssetImage = false;
+  bool _isLoading = false;
 
   // List of available asset images for avatars
   final List<String> _avatarAssets = [
@@ -187,25 +186,40 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
-  // Validate form and submit
-  void _validateAndSubmit() {
+  Future<void> _validateAndSubmit() async {
     if (_formKey.currentState!.validate()) {
-      // Form is valid, create user object and proceed
-      final user = User(
-        username: _usernameController.text,
-        email: _emailController.text,
-        password: _passwordController.text,
-        profilePhoto: _isNetworkImage ? _profileImage : null,
-        profilePhotoUrl: _isNetworkImage ? _imageUrl : null,
-        assetImagePath: _isAssetImage ? _assetImagePath : null,
-      );
+      setState(() => _isLoading = true);
+      try {
+        // Create user in Firebase Authentication
+        final userCredential = await _authService.registerWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
 
-      Navigator.pushReplacementNamed(context, '/main_page', arguments: user);  // should go to home page
-    } else {
-      // Form validation failed
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please check the form and try again')),
-      );
+        // Create user object with additional data
+        final user = User(
+          username: _usernameController.text,
+          email: _emailController.text,
+          password: _passwordController.text,
+          profilePhoto: _isNetworkImage ? _profileImage : null,
+          profilePhotoUrl: _isNetworkImage ? _imageUrl : null,
+          assetImagePath: _isAssetImage ? _assetImagePath : null,
+        );
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/main_page', arguments: user);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Hata: ${e.toString()}')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -223,14 +237,13 @@ class _SignInScreenState extends State<SignInScreen> {
     final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor:const Color(0xFFF0E6FF), // Using color from utility class
+      backgroundColor: const Color(0xFFF0E6FF),
       body: Stack(
         children: [
-          // Form in a scrollable container for iPhone compatibility
           Positioned.fill(
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 50, // Account for safe area
+                top: MediaQuery.of(context).padding.top + 50,
                 left: 32,
                 right: 32,
                 bottom: 24
@@ -417,18 +430,20 @@ class _SignInScreenState extends State<SignInScreen> {
                       width: screenSize.width - 64,
                       height: 48,
                       child: TextButton(
-                        onPressed: _validateAndSubmit,
+                        onPressed: _isLoading ? null : _validateAndSubmit,
                         style: TextButton.styleFrom(
                           backgroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(vertical: 8), // Reduced padding to center text better
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(
-                          'sign in',
-                          style: AppFonts.deleteButtonText,
-                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                                'Sign Up',
+                                style: AppFonts.deleteButtonText,
+                              ),
                       ),
                     ),
 
