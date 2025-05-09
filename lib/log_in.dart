@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
-
+import 'package:tatli_sozluk/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,17 +14,31 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameOrEmailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
 
-  void _login() {
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      // Form is valid, proceed with login
-      // Navigate to profile page or home screen
-      Navigator.pushReplacementNamed(context, '/main_page');
-    } else {
-      // Form validation failed
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please check the form and try again')),
-      );
+      setState(() => _isLoading = true);
+      try {
+        await _authService.signInWithEmailAndPassword(
+          _usernameOrEmailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/main_page');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Hata: ${e.toString()}')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -153,7 +167,7 @@ class _LoginPageState extends State<LoginPage> {
                       width: screenSize.width - 64,
                       height: 48,
                       child: TextButton(
-                        onPressed: _login,
+                        onPressed: _isLoading ? null : _login,
                         style: TextButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -161,10 +175,12 @@ class _LoginPageState extends State<LoginPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(
-                          'log in',
-                          style: AppFonts.deleteButtonText, // Using your delete button text style for consistency
-                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                                'log in',
+                                style: AppFonts.deleteButtonText,
+                              ),
                       ),
                     ),
                     
