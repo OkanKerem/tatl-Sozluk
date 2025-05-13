@@ -40,6 +40,8 @@ dependencies:
   cloud_firestore: ^4.15.9
   # Environment variables
   flutter_dotenv: ^5.1.0
+  # State management
+  provider: ^6.0.5
   
   # Add other Firebase services as needed, such as:
   # firebase_storage: ^11.6.10
@@ -83,11 +85,13 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
+  fonts:
+    - family: Itim
+      fonts:
+        - asset: assets/Fonts/Itim-Regular.ttf
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
   #         style: italic
   #   - family: Trajan Pro
   #     fonts:

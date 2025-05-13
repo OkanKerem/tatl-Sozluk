@@ -4,24 +4,41 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';  // For handl
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
 import 'package:tatli_sozluk/services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';  // Add Firestore import
+import 'package:provider/provider.dart';
+import 'package:tatli_sozluk/providers/user_provider.dart';
 
-// User model class - updated to include profilePhotoUrl and assetImagePath
+// User model class - updated to use profilePictureIndex
 class User {
   String username;
   String email;
   String password;
-  File? profilePhoto;
-  String? profilePhotoUrl; // For network images
-  String? assetImagePath; // For asset images
+  int profilePictureIndex; // Index of selected profile picture (1-5)
+  List<String> followers;
+  List<String> following;
+  List<String> posts;
 
   User({
     required this.username,
     required this.email,
     required this.password,
-    this.profilePhoto,
-    this.profilePhotoUrl,
-    this.assetImagePath,
+    this.profilePictureIndex = 1, // Default to first picture
+    this.followers = const [],
+    this.following = const [],
+    this.posts = const [],
   });
+
+  // Convert user data to a Map for Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'nickname': username,
+      'email': email,
+      'profilePicture': profilePictureIndex,
+      'followers': followers,
+      'following': following,
+      'posts': posts,
+    };
+  }
 }
 
 class SignInScreen extends StatefulWidget {
@@ -37,16 +54,15 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
-  File? _profileImage;
-  String? _imageUrl; // To store network image URL
-  String? _assetImagePath; // To store asset image path
-  bool _isNetworkImage = false;
-  bool _isAssetImage = false;
+  int _selectedProfilePicture = 1; // Default to first picture
   bool _isLoading = false;
 
   // List of available asset images for avatars
   final List<String> _avatarAssets = [
     'assets/Images/girlAvatar.png',
+    'assets/Images/boyAvatar.png',
+    'assets/Images/girlAvatar.png',
+    'assets/Images/boyAvatar.png',
     'assets/Images/boyAvatar.png'
   ];
 
@@ -56,133 +72,47 @@ class _SignInScreenState extends State<SignInScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Select Profile Photo', style: AppFonts.infoLabelText),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.link),
-              title: Text('Use network image', style: AppFonts.entryBodyText),
-              onTap: () {
-                Navigator.pop(context);
-                _showNetworkImageDialog();
-              },
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
-            ListTile(
-              leading: const Icon(Icons.face),
-              title: Text('Choose avatar', style: AppFonts.entryBodyText),
-              onTap: () {
-                Navigator.pop(context);
-                _showAvatarSelectionDialog();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Dialog for entering a network image UaRL
-  void _showNetworkImageDialog() {
-    final TextEditingController urlController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Enter Image URL', style: AppFonts.infoLabelText),
-          content: TextField(
-            controller: urlController,
-            decoration: InputDecoration(
-              hintText: 'https://example.com/image.jpg',
-              hintStyle: AppFonts.entryBodyText.copyWith(color: Colors.grey),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: AppFonts.entryBodyText),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                final url = urlController.text.trim();
-                if (url.isNotEmpty) {
-                  if (url.startsWith('http')) {
-                    try {
-                      // Download and cache the network image
-                      final fileInfo = await DefaultCacheManager().downloadFile(url);
-                      setState(() {
-                        _profileImage = fileInfo.file;
-                        _imageUrl = url;
-                        _isNetworkImage = true;
-                        _isAssetImage = false;
-                        _assetImagePath = null;
-                      });
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to load image: $e')),
-                      );
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please enter a valid URL starting with http:// or https://')),
-                    );
-                  }
-                }
-              },
-              child: Text('OK', style: AppFonts.entryBodyText),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // Dialog for selecting an avatar from assets
-  void _showAvatarSelectionDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Choose Avatar', style: AppFonts.infoLabelText),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: _avatarAssets.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _assetImagePath = _avatarAssets[index];
-                      _isAssetImage = true;
-                      _isNetworkImage = false;
-                      _imageUrl = null;
-                      _profileImage = null;
-                    });
-                    Navigator.pop(context);
-                  },
+            itemCount: _avatarAssets.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedProfilePicture = index + 1; // 1-based index
+                  });
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: _selectedProfilePicture == index + 1
+                        ? Border.all(color: AppColors.primary, width: 3)
+                        : null,
+                  ),
                   child: CircleAvatar(
                     radius: 30,
                     backgroundImage: AssetImage(_avatarAssets[index]),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: AppFonts.entryBodyText),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: AppFonts.entryBodyText),
+          ),
+        ],
+      ),
     );
   }
 
@@ -201,13 +131,22 @@ class _SignInScreenState extends State<SignInScreen> {
           username: _usernameController.text,
           email: _emailController.text,
           password: _passwordController.text,
-          profilePhoto: _isNetworkImage ? _profileImage : null,
-          profilePhotoUrl: _isNetworkImage ? _imageUrl : null,
-          assetImagePath: _isAssetImage ? _assetImagePath : null,
+          profilePictureIndex: _selectedProfilePicture,
+          followers: [],
+          following: [],
+          posts: [],
         );
 
+        // Add user data to Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set(user.toMap());
+            
+        // Load user data into provider
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/main_page', arguments: user);
+          await Provider.of<UserProvider>(context, listen: false).loadUserData();
+          Navigator.pushReplacementNamed(context, '/main_page');
         }
       } catch (e) {
         if (mounted) {
@@ -400,25 +339,11 @@ class _SignInScreenState extends State<SignInScreen> {
                               width: 1,
                               color: AppColors.primary,
                             ),
-                            image: _isAssetImage && _assetImagePath != null
-                                ? DecorationImage(
-                                    image: AssetImage(_assetImagePath!),
-                                    fit: BoxFit.cover,
-                                  )
-                                : _isNetworkImage && _imageUrl != null
-                                    ? DecorationImage(
-                                        image: NetworkImage(_imageUrl!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
+                            image: DecorationImage(
+                              image: AssetImage(_avatarAssets[_selectedProfilePicture - 1]),
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                          child: (!_isAssetImage && !_isNetworkImage)
-                              ? const Icon(
-                                  Icons.camera_alt,
-                                  size: 32,
-                                  color: Colors.black54,
-                                )
-                              : null,
                         ),
                       ),
                     ),
