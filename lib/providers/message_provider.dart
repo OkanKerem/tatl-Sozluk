@@ -182,7 +182,10 @@ class MessageProvider extends ChangeNotifier {
   // Yeni mesaj gönder
   Future<bool> sendMessage(String receiverId, String content) async {
     try {
+      print("Sending message to: $receiverId, content: $content");
       final currentUser = _auth.currentUser;
+      print("Current user: ${currentUser?.uid}");
+      
       if (currentUser != null) {
         final newMessage = Message(
           id: '', // Firestore otomatik oluşturacak
@@ -193,14 +196,24 @@ class MessageProvider extends ChangeNotifier {
           isRead: false,
         );
         
-        // Mesajı Firestore'a ekle
-        await _firestore.collection(_collectionName).add(newMessage.toMap());
+        print("Message object created, preparing to send to Firestore");
+        print("Collection name: $_collectionName");
         
-        return true;
+        // Mesajı Firestore'a ekle
+        try {
+          final docRef = await _firestore.collection(_collectionName).add(newMessage.toMap());
+          print("Message sent successfully with ID: ${docRef.id}");
+          return true;
+        } catch (firestoreError) {
+          print("Firestore error while adding message: $firestoreError");
+          return false;
+        }
+      } else {
+        print("Failed to send message: User not logged in");
+        return false;
       }
-      return false;
     } catch (e) {
-      print('Error sending message: $e');
+      print("Error sending message: $e");
       return false;
     }
   }
