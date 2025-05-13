@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tatli_sozluk/utils/routes.dart'; // AppRoutes burada tanımlıysa
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'package:tatli_sozluk/providers/user_provider.dart';
+import 'package:tatli_sozluk/providers/entry_provider.dart';
+import 'package:tatli_sozluk/providers/comment_provider.dart';
 
 Future<void> main() async {
   // Ensure Flutter bindings are initialized
@@ -21,7 +25,22 @@ Future<void> main() async {
     ),
   );
   
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => UserProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => EntryProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => CommentProvider(),
+        ),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
