@@ -13,6 +13,7 @@ class EntryProvider extends ChangeNotifier {
   List<Entry> get userEntries => _userEntries;
   List<Entry> get allEntries => _allEntries;
   bool get isLoading => _isLoading;
+  String get currentUserId => _auth.currentUser?.uid ?? '';
   
   // Firestore ve Auth referansları
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -29,17 +30,48 @@ class EntryProvider extends ChangeNotifier {
     try {
       final user = _auth.currentUser;
       if (user != null) {
-        final entriesSnapshot = await _firestore
-            .collection(_collectionName)
-            .where('userId', isEqualTo: user.uid)
-            .orderBy('createdAt', descending: true)
-            .get();
+        print('Loading entries for current user: ${user.uid}');
         
-        _userEntries = entriesSnapshot.docs
-            .map((doc) => Entry.fromFirestore(doc))
-            .toList();
+        // Get the user document to access their posts list
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
         
-        notifyListeners();
+        if (!userDoc.exists) {
+          print('User document not found for current user');
+          _userEntries = [];
+          return;
+        }
+        
+        final userData = userDoc.data()!;
+        final userPosts = List<String>.from(userData['posts'] ?? []);
+        
+        if (userPosts.isEmpty) {
+          print('Current user has no posts');
+          _userEntries = [];
+          return;
+        }
+        
+        print('Found ${userPosts.length} post IDs for current user');
+        
+        // Create a list to hold the entries
+        List<Entry> entries = [];
+        
+        // Get entries by their IDs
+        for (String postId in userPosts) {
+          try {
+            final postDoc = await _firestore.collection(_collectionName).doc(postId).get();
+            if (postDoc.exists) {
+              entries.add(Entry.fromFirestore(postDoc));
+            }
+          } catch (e) {
+            print('Error loading post $postId: $e');
+          }
+        }
+        
+        // Sort entries by creation date (newest first)
+        entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        
+        _userEntries = entries;
+        print('Successfully loaded ${_userEntries.length} entries for current user');
       }
     } catch (e) {
       print('Error loading user entries: $e');
@@ -89,6 +121,7 @@ class EntryProvider extends ChangeNotifier {
           userId: user.uid,
           createdAt: DateTime.now(),
           likedBy: [],
+          comments: [],
         );
         
         // Entry'i Firestore'a ekle
@@ -103,6 +136,7 @@ class EntryProvider extends ChangeNotifier {
           userId: user.uid,
           createdAt: DateTime.now(),
           likedBy: [],
+          comments: [],
         );
         
         _userEntries.insert(0, createdEntry);
@@ -196,6 +230,7 @@ class EntryProvider extends ChangeNotifier {
             userId: _userEntries[userEntryIndex].userId,
             createdAt: _userEntries[userEntryIndex].createdAt,
             likedBy: updatedLikes,
+            comments: _userEntries[userEntryIndex].comments,
           );
           _userEntries[userEntryIndex] = updated;
         }
@@ -210,6 +245,7 @@ class EntryProvider extends ChangeNotifier {
             userId: _allEntries[allEntryIndex].userId,
             createdAt: _allEntries[allEntryIndex].createdAt,
             likedBy: updatedLikes,
+            comments: _allEntries[allEntryIndex].comments,
           );
           _allEntries[allEntryIndex] = updated;
         }
@@ -221,6 +257,93 @@ class EntryProvider extends ChangeNotifier {
     } catch (e) {
       print('Error toggling like: $e');
       return false;
+    }
+  }
+  
+  // Get entry by ID
+  Future<Entry?> getEntryById(String entryId) async {
+    try {
+      // Check if entry is already in local lists
+      final localEntry = _allEntries.firstWhere(
+        (entry) => entry.id == entryId,
+        orElse: () => _userEntries.firstWhere(
+          (entry) => entry.id == entryId,
+          orElse: () => Entry(
+            id: '',
+            title: '',
+            description: '',
+            author: '',
+            userId: '',
+            createdAt: DateTime.now(),
+            likedBy: [],
+            comments: [],
+          ),
+        ),
+      );
+      
+      if (localEntry.id.isNotEmpty) {
+        return localEntry;
+      }
+      
+      // Fetch from Firestore if not in local lists
+      final entryDoc = await _firestore.collection(_collectionName).doc(entryId).get();
+      if (entryDoc.exists) {
+        return Entry.fromFirestore(entryDoc);
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error getting entry by ID: $e');
+      return null;
+    }
+  }
+  
+  // Get entries by user ID
+  Future<List<Entry>> getEntriesByUserId(String userId) async {
+    try {
+      print('Loading entries for user: $userId');
+      
+      // First, get the user document to access their posts list
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      
+      if (!userDoc.exists) {
+        print('User document not found for userId: $userId');
+        return [];
+      }
+      
+      final userData = userDoc.data()!;
+      final userPosts = List<String>.from(userData['posts'] ?? []);
+      
+      if (userPosts.isEmpty) {
+        print('User has no posts');
+        return [];
+      }
+      
+      print('Found ${userPosts.length} post IDs for user: $userId');
+      
+      // Create a list to hold the entries
+      List<Entry> entries = [];
+      
+      // Get entries by their IDs
+      for (String postId in userPosts) {
+        try {
+          final postDoc = await _firestore.collection(_collectionName).doc(postId).get();
+          if (postDoc.exists) {
+            entries.add(Entry.fromFirestore(postDoc));
+          }
+        } catch (e) {
+          print('Error loading post $postId: $e');
+        }
+      }
+      
+      // Sort entries by creation date (newest first)
+      entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      print('Successfully loaded ${entries.length} entries for user: $userId');
+      return entries;
+    } catch (e) {
+      print('Error getting entries by user ID: $e');
+      return [];
     }
   }
 } 

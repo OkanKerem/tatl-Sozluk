@@ -8,7 +8,7 @@ class Entry {
   final String userId;
   final DateTime createdAt;
   final List<String> likedBy;
-  // Comments will be in a separate collection with reference to this entry
+  final List<String> comments; // Comment ID'lerinin listesi
   
   Entry({
     required this.id,
@@ -18,6 +18,7 @@ class Entry {
     required this.userId,
     required this.createdAt,
     required this.likedBy,
+    required this.comments,
   });
   
   // Create Entry from Firestore document
@@ -31,6 +32,7 @@ class Entry {
       userId: data['userId'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       likedBy: List<String>.from(data['likedBy'] ?? []),
+      comments: List<String>.from(data['comments'] ?? []),
     );
   }
   
@@ -43,6 +45,7 @@ class Entry {
       'userId': userId,
       'createdAt': Timestamp.fromDate(createdAt),
       'likedBy': likedBy,
+      'comments': comments,
     };
   }
 } 

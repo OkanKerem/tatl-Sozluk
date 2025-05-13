@@ -5,9 +5,12 @@ import 'package:provider/provider.dart';
 import 'package:tatli_sozluk/providers/user_provider.dart';
 import 'package:tatli_sozluk/providers/entry_provider.dart';
 import 'package:tatli_sozluk/models/entry_model.dart';
+import 'package:tatli_sozluk/entry_detail.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  final String? userId; // If null, displays current user's profile
+  
+  const ProfilePage({Key? key, this.userId}) : super(key: key);
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -25,15 +28,101 @@ class _ProfilePageState extends State<ProfilePage> {
   
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  
+  bool isOwnProfile = true;
+  String displayUsername = '';
+  int profilePictureIndex = 1;
+  List<String> followers = [];
+  List<String> following = [];
+  List<Entry> userEntries = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    
     // Widget mount edildiğinde kullanıcı verilerini ve entry'leri yükle
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<UserProvider>(context, listen: false).loadUserData();
-      Provider.of<EntryProvider>(context, listen: false).loadUserEntries();
+      _loadProfileData();
     });
+  }
+  
+  Future<void> _loadProfileData() async {
+    setState(() {
+      isLoading = true;
+    });
+    
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final entryProvider = Provider.of<EntryProvider>(context, listen: false);
+    
+    try {
+      if (widget.userId == null || widget.userId == userProvider.userId) {
+        // Load current user profile
+        isOwnProfile = true;
+        await userProvider.loadUserData();
+        await entryProvider.loadUserEntries();
+        
+        if (mounted) {
+          setState(() {
+            displayUsername = userProvider.username;
+            profilePictureIndex = userProvider.profilePictureIndex;
+            followers = userProvider.followers;
+            following = userProvider.following;
+            userEntries = entryProvider.userEntries;
+            isLoading = false;
+          });
+        }
+      } else {
+        // Load another user's profile
+        isOwnProfile = false;
+        
+        // Load user details
+        final otherUserData = await userProvider.getUserById(widget.userId!);
+        
+        // Load other user entries
+        final otherUserEntries = await entryProvider.getEntriesByUserId(widget.userId!);
+        
+        if (mounted && otherUserData != null) {
+          setState(() {
+            displayUsername = otherUserData['nickname'] ?? 'Unknown User';
+            profilePictureIndex = otherUserData['profilePicture'] ?? 1;
+            followers = List<String>.from(otherUserData['followers'] ?? []);
+            following = List<String>.from(otherUserData['following'] ?? []);
+            userEntries = otherUserEntries;
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not load user profile')),
+            );
+            Navigator.pop(context);
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading profile: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading profile: $e')),
+        );
+      }
+    }
+  }
+  
+  void _navigateToEntryDetail(Entry entry) {
+    Navigator.pushNamed(
+      context,
+      '/entry_detail',
+      arguments: entry.id,
+    );
   }
   
   @override
@@ -43,7 +132,7 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  // Entry silme metodu
+  // Entry silme metodu - sadece kendi profili ise gösterilir
   void deleteEntry(String entryId) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final entryProvider = Provider.of<EntryProvider>(context, listen: false);
@@ -55,10 +144,14 @@ class _ProfilePageState extends State<ProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Entry deleted successfully')),
       );
+      // Güncel kullanıcı entry listesini yenile
+      setState(() {
+        userEntries.removeWhere((entry) => entry.id == entryId);
+      });
     }
   }
 
-  // Yeni entry ekleme metodu
+  // Yeni entry ekleme metodu - sadece kendi profili ise gösterilir
   void showAddEntryDialog() {
     _titleController.clear();
     _descriptionController.clear();
@@ -128,166 +221,177 @@ class _ProfilePageState extends State<ProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('New entry created successfully')),
       );
+      // Kullanıcı entry listesini güncelle
+      await entryProvider.loadUserEntries();
+      setState(() {
+        userEntries = entryProvider.userEntries;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<UserProvider, EntryProvider>(
-      builder: (context, userProvider, entryProvider, child) {
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: AppBar(
-            backgroundColor: AppColors.background,
-            elevation: 0,
-            centerTitle: true,
-            title: Text('Profile', style: AppFonts.usernameText),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-              onPressed: () => Navigator.pop(context),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.settings, color: AppColors.primary),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/settings');
-                },
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        centerTitle: true,
+        title: Text('Profile', style: AppFonts.usernameText),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: isOwnProfile ? [
+          IconButton(
+            icon: const Icon(Icons.settings, color: AppColors.primary),
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
           ),
-          body: userProvider.isLoading || entryProvider.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+        ] : null,
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
+                CircleAvatar(
+                  radius: 48,
+                  backgroundColor: const Color(0xFFFDF1F1),
+                  backgroundImage: AssetImage(
+                      _avatarAssets[profilePictureIndex - 1]),
+                ),
+                const SizedBox(height: 16),
+                Text(displayUsername, style: AppFonts.usernameText),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
-                    CircleAvatar(
-                      radius: 48,
-                      backgroundColor: const Color(0xFFFDF1F1),
-                      backgroundImage: AssetImage(
-                          _avatarAssets[userProvider.profilePictureIndex - 1]),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(userProvider.username, style: AppFonts.usernameText),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Column(
                       children: [
-                        Column(
-                          children: [
-                            Text('${userProvider.followers.length}', style: AppFonts.countText),
-                            Text('Followers', style: AppFonts.entryBodyText),
-                          ],
-                        ),
-                        const SizedBox(width: 40),
-                        Column(
-                          children: [
-                            Text('${userProvider.following.length}', style: AppFonts.countText),
-                            Text('Following', style: AppFonts.entryBodyText),
-                          ],
-                        ),
+                        Text('${followers.length}', style: AppFonts.countText),
+                        Text('Followers', style: AppFonts.entryBodyText),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Entries (${entryProvider.userEntries.length})', style: AppFonts.entriesLabelText),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                            ),
-                            onPressed: showAddEntryDialog,
-                            child: const Text(
-                              'New Entry',
-                              style: TextStyle(
-                                fontFamily: 'Itim',
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: entryProvider.userEntries.isEmpty
-                          ? Center(
-                              child: Text(
-                                'No entries yet.\nCreate your first entry!',
-                                textAlign: TextAlign.center,
-                                style: AppFonts.entryBodyText,
-                              ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              itemCount: entryProvider.userEntries.length,
-                              itemBuilder: (context, index) {
-                                final entry = entryProvider.userEntries[index];
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  child: Card(
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(40),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(entry.title, style: AppFonts.entryTitleText),
-                                          const SizedBox(height: 8),
-                                          Text(entry.description, style: AppFonts.entryBodyText),
-                                          const SizedBox(height: 12),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              // Like bilgisi
-                                              Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.favorite,
-                                                    color: entry.likedBy.isNotEmpty ? Colors.red : Colors.grey,
-                                                    size: 20,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    '${entry.likedBy.length}',
-                                                    style: AppFonts.entryBodyText.copyWith(
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              TextButton(
-                                                onPressed: () => deleteEntry(entry.id),
-                                                style: TextButton.styleFrom(
-                                                  backgroundColor: AppColors.primary,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                ),
-                                                child: Text('Delete', style: AppFonts.deleteButtonText),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                    const SizedBox(width: 40),
+                    Column(
+                      children: [
+                        Text('${following.length}', style: AppFonts.countText),
+                        Text('Following', style: AppFonts.entryBodyText),
+                      ],
                     ),
                   ],
                 ),
-        );
-      },
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Entries (${userEntries.length})', style: AppFonts.entriesLabelText),
+                      if (isOwnProfile) ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                        ),
+                        onPressed: showAddEntryDialog,
+                        child: const Text(
+                          'New Entry',
+                          style: TextStyle(
+                            fontFamily: 'Itim',
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: userEntries.isEmpty
+                      ? Center(
+                          child: Text(
+                            isOwnProfile 
+                                ? 'No entries yet.\nCreate your first entry!'
+                                : 'This user has not created any entries yet.',
+                            textAlign: TextAlign.center,
+                            style: AppFonts.entryBodyText,
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: userEntries.length,
+                          itemBuilder: (context, index) {
+                            final entry = userEntries[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: GestureDetector(
+                                onTap: () => _navigateToEntryDetail(entry),
+                                child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(entry.title, style: AppFonts.entryTitleText),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          entry.description.length > 100
+                                              ? '${entry.description.substring(0, 100)}...'
+                                              : entry.description,
+                                          style: AppFonts.entryBodyText
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            // Like bilgisi
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.favorite,
+                                                  color: entry.likedBy.isNotEmpty ? Colors.red : Colors.grey,
+                                                  size: 20,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${entry.likedBy.length}',
+                                                  style: AppFonts.entryBodyText.copyWith(
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            if (isOwnProfile) TextButton(
+                                              onPressed: () => deleteEntry(entry.id),
+                                              style: TextButton.styleFrom(
+                                                backgroundColor: AppColors.primary,
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                              child: Text('Delete', style: AppFonts.deleteButtonText),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 }

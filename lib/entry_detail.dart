@@ -1,40 +1,145 @@
 import 'package:flutter/material.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:tatli_sozluk/providers/entry_provider.dart';
+import 'package:tatli_sozluk/providers/user_provider.dart';
+import 'package:tatli_sozluk/providers/comment_provider.dart';
+import 'package:tatli_sozluk/models/entry_model.dart';
+import 'package:tatli_sozluk/models/comment_model.dart';
 
-class EntryDetailPage extends StatelessWidget {
-  const EntryDetailPage({super.key});
+class EntryDetailPage extends StatefulWidget {
+  final String entryId;
+  
+  const EntryDetailPage({super.key, required this.entryId});
 
-  final List<Map<String, String>> entries = const [
-    {
-      'text':
-          "harika bir futbolcu, bizim çocukların göz bebeği.\ngeleceğin her şeyi.",
-      'author': "Yiğit Zorer",
-    },
-    {
-      'text':
-          "tecrübeye aç, madrid için erken.\nAma gelecek için geç kalınmış bi futbolcu.",
-      'author': "Ali Şencan",
-    },
-    {'text': "fenerbahçeden ayrılmamalıydı.", 'author': "Cem Sümer"},
-  ];
+  @override
+  State<EntryDetailPage> createState() => _EntryDetailPageState();
+}
 
-  final String entryTitle = "arda güler";
+class _EntryDetailPageState extends State<EntryDetailPage> {
+  bool isLoading = true;
+  Entry? entry;
+  final TextEditingController _commentController = TextEditingController();
+  bool isSubmittingComment = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEntryAndComments();
+  }
+  
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadEntryAndComments() async {
+    try {
+      final entryProvider = Provider.of<EntryProvider>(context, listen: false);
+      final commentProvider = Provider.of<CommentProvider>(context, listen: false);
+      
+      // Load entry
+      final loadedEntry = await entryProvider.getEntryById(widget.entryId);
+      
+      // Load comments for the entry
+      await commentProvider.loadComments(widget.entryId);
+      
+      if (mounted) {
+        setState(() {
+          entry = loadedEntry;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading entry: ${e.toString()}')),
+        );
+      }
+    }
+  }
+  
+  // Yorum ekleme fonksiyonu
+  Future<void> _submitComment() async {
+    final commentText = _commentController.text.trim();
+    if (commentText.isEmpty) return;
+    
+    setState(() {
+      isSubmittingComment = true;
+    });
+    
+    try {
+      final commentProvider = Provider.of<CommentProvider>(context, listen: false);
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      
+      final success = await commentProvider.addComment(
+        widget.entryId,
+        commentText,
+        userProvider.username,
+      );
+      
+      if (success && mounted) {
+        _commentController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Comment added successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding comment: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSubmittingComment = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(context),
-            const SizedBox(height: 10),
-            _buildPaginationInfo(),
-            const SizedBox(height: 10),
-            _buildEntryList(),
-          ],
-        ),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : entry == null
+                ? const Center(child: Text('Entry not found'))
+                : Column(
+                    children: [
+                      _buildTopBar(context),
+                      Expanded(
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          children: [
+                            _buildEntry(),
+                            const SizedBox(height: 16),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'Comments',
+                                style: AppFonts.entriesLabelText.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildCommentsList(),
+                          ],
+                        ),
+                      ),
+                      _buildCommentInput(),
+                    ],
+                  ),
       ),
     );
   }
@@ -44,72 +149,291 @@ class EntryDetailPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.arrow_back),
+          IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
           const SizedBox(width: 10),
-          Text(entryTitle, style: AppFonts.entryTitleText),
-          const Spacer(),
-          IconButton(icon: const Icon(Icons.edit), onPressed: () {Navigator.pop(context);}),
+          Expanded(
+            child: Text(
+              entry?.title ?? 'Entry Detail',
+              style: AppFonts.entryTitleText,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPaginationInfo() {
-    return const Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text("<"),
-        SizedBox(width: 10),
-        Text("1/35"),
-        SizedBox(width: 10),
-        Text(">"),
-      ],
+  Widget _buildEntry() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Text(
+            entry!.title,
+            style: AppFonts.entryTitleText.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Description
+          Text(
+            entry!.description,
+            style: AppFonts.entryBodyText,
+          ),
+          const SizedBox(height: 20),
+          
+          // Author info
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Consumer<EntryProvider>(
+                builder: (context, provider, child) {
+                  final isLiked = entry!.likedBy.contains(provider.currentUserId);
+                  return Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: isLiked ? Colors.red : Colors.grey,
+                        ),
+                        onPressed: () {
+                          provider.toggleLike(entry!.id);
+                          // Update local entry state to show like status change immediately
+                          setState(() {
+                            if (isLiked) {
+                              entry!.likedBy.remove(provider.currentUserId);
+                            } else {
+                              entry!.likedBy.add(provider.currentUserId);
+                            }
+                          });
+                        },
+                      ),
+                      Text('${entry!.likedBy.length}'),
+                    ],
+                  );
+                },
+              ),
+              GestureDetector(
+                onTap: () {
+                  // Navigate to the author's profile
+                  Navigator.pushNamed(
+                    context,
+                    '/user_profile',
+                    arguments: entry!.userId,
+                  );
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      'by ${entry!.author}',
+                      style: AppFonts.usernameText.copyWith(
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
-
-  Widget _buildEntryList() {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: entries.length,
-        itemBuilder: (context, index) {
-          final entry = entries[index];
-          return Card(
-            color: AppColors.primary.withOpacity(0.1),
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  
+  Widget _buildCommentsList() {
+    return Consumer<CommentProvider>(
+      builder: (context, commentProvider, child) {
+        if (commentProvider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        final comments = commentProvider.comments;
+        
+        if (comments.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(
+              child: Text(
+                'No comments yet. Be the first to comment!',
+                style: AppFonts.entryBodyText.copyWith(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: comments.length,
+          itemBuilder: (context, index) {
+            final comment = comments[index];
+            return _buildCommentItem(comment);
+          },
+        );
+      },
+    );
+  }
+  
+  Widget _buildCommentItem(Comment comment) {
+    return Consumer2<CommentProvider, UserProvider>(
+      builder: (context, commentProvider, userProvider, child) {
+        final isLiked = comment.likedBy.contains(userProvider.userId);
+        final isOwnComment = comment.userId == userProvider.userId;
+        
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            border: Border(
+              bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Text(entry['text']!, style: AppFonts.entryBodyText),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.favorite_border),
-                          SizedBox(width: 10),
-                          Icon(Icons.comment),
-                        ],
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/user_profile',
+                        arguments: comment.userId,
+                      );
+                    },
+                    child: Text(
+                      comment.author,
+                      style: AppFonts.usernameText.copyWith(
+                        decoration: TextDecoration.underline,
+                        fontSize: 14,
                       ),
-                      Row(
-                        children: [
-                          Text(entry['author']!, style: AppFonts.usernameText),
-                          const SizedBox(width: 8),
-                          const CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            child: Icon(Icons.person),
+                    ),
+                  ),
+                  const Spacer(),
+                  if (isOwnComment)
+                    IconButton(
+                      icon: const Icon(Icons.delete, size: 18, color: Colors.grey),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Delete Comment'),
+                            content: const Text('Are you sure you want to delete this comment?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
                           ),
-                        ],
+                        );
+                        
+                        if (confirm == true && mounted) {
+                          await commentProvider.deleteComment(comment.id);
+                        }
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                comment.text,
+                style: AppFonts.entryBodyText.copyWith(fontSize: 15),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${comment.createdAt.day}/${comment.createdAt.month}/${comment.createdAt.year}',
+                    style: AppFonts.entryBodyText.copyWith(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          commentProvider.toggleLike(comment.id);
+                        },
+                        child: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: isLiked ? Colors.red : Colors.grey,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${comment.likedBy.length}',
+                        style: AppFonts.entryBodyText.copyWith(fontSize: 12),
                       ),
                     ],
                   ),
                 ],
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildCommentInput() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _commentController,
+              decoration: InputDecoration(
+                hintText: 'Write a comment...',
+                hintStyle: AppFonts.entryBodyText.copyWith(color: Colors.grey),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.withOpacity(0.1),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              minLines: 1,
+              maxLines: 3,
             ),
-          );
-        },
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: isSubmittingComment 
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator())
+                : const Icon(Icons.send, color: AppColors.primary),
+            onPressed: isSubmittingComment ? null : _submitComment,
+          ),
+        ],
       ),
     );
   }
