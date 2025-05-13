@@ -1,183 +1,271 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
+import 'package:provider/provider.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
-import 'package:tatli_sozluk/pages/random_entry_page.dart';
-import 'package:tatli_sozluk/pages/popular_entries_page.dart';
 import 'package:tatli_sozluk/search_page.dart';
 import 'package:tatli_sozluk/dm.dart';
 import 'package:tatli_sozluk/profile_part.dart';
 import 'package:tatli_sozluk/entry_detail.dart';
+import 'package:tatli_sozluk/providers/entry_provider.dart';
+import 'package:tatli_sozluk/models/entry_model.dart';
 
-class MainPage extends StatelessWidget {
+class MainPage extends StatefulWidget {
   const MainPage({Key? key}) : super(key: key);
 
-  void _navigateToRandom(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const RandomEntryPage()),
-    );
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  bool _sortByNewest = true; // Default sorting - newest first
+  
+  @override
+  void initState() {
+    super.initState();
+    // Load entries when widget initializes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<EntryProvider>(context, listen: false).loadAllEntries();
+    });
   }
 
-  void _navigateToNew(BuildContext context) {
-    Navigator.push(
+  void _navigateToDetail(BuildContext context, Entry entry) {
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(builder: (_) => const MainPage()),
-    );
-  }
-
-  void _navigateToPopular(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PopularEntriesPage()),
-    );
-  }
-
-  void _navigateToEntryDetail(BuildContext context, String title) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const EntryDetailPage()),
+      '/entry_detail',
+      arguments: entry.id,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: const Color(0xFFF5EFFF),
-        child: Column(
-          children: [
-            const SizedBox(height: 60),
-            // Top navigation buttons: New, Random, Popular
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  TextButton(
-                    onPressed: () => _navigateToNew(context),
-                    child: Text(
-                      'New',
-                      style: AppFonts.entryBodyText.copyWith(color: AppColors.primary),
-                    ),
+    return Consumer<EntryProvider>(
+      builder: (context, entryProvider, child) {
+        // Sort entries based on selected filter
+        final entries = List<Entry>.from(entryProvider.allEntries);
+        if (_sortByNewest) {
+          // Already sorted by newest in the provider, nothing to do
+        } else {
+          // Sort by like count (most liked first)
+          entries.sort((a, b) => b.likedBy.length.compareTo(a.likedBy.length));
+        }
+        
+        return Scaffold(
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: const Color(0xFFF5EFFF),
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
+                // Top filter buttons: Newest, Most Liked
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _sortByNewest = true;
+                          });
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(
+                            _sortByNewest ? AppColors.primary : Colors.transparent,
+                          ),
+                          padding: MaterialStateProperty.all(
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          shape: MaterialStateProperty.all(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Newest',
+                          style: AppFonts.entryBodyText.copyWith(
+                            color: _sortByNewest ? Colors.white : AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _sortByNewest = false;
+                          });
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(
+                            !_sortByNewest ? AppColors.primary : Colors.transparent,
+                          ),
+                          padding: MaterialStateProperty.all(
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          shape: MaterialStateProperty.all(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          'Most Liked',
+                          style: AppFonts.entryBodyText.copyWith(
+                            color: !_sortByNewest ? Colors.white : AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  TextButton(
-                    onPressed: () => _navigateToRandom(context),
-                    child: Text(
-                      'Random',
-                      style: AppFonts.entryBodyText.copyWith(color: AppColors.primary),
-                    ),
+                ),
+                const SizedBox(height: 16),
+                // Entry list
+                Expanded(
+                  child: entryProvider.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : entries.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No entries found',
+                                style: AppFonts.entryBodyText,
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: entries.length,
+                              itemBuilder: (context, index) {
+                                final entry = entries[index];
+                                return _buildEntryItem(context, entry);
+                              },
+                            ),
+                ),
+              ],
+            ),
+          ),
+          // Bottom navigation bar with four icons
+          bottomNavigationBar: Container(
+            height: 64,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  color: AppColors.primary,
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SearchPage()),
                   ),
-                  const SizedBox(width: 16),
-                  TextButton(
-                    onPressed: () => _navigateToPopular(context),
-                    child: Text(
-                      'Popular',
-                      style: AppFonts.entryBodyText.copyWith(color: AppColors.primary),
-                    ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  color: AppColors.primary,
+                  onPressed: () {
+                    // Refresh entries
+                    Provider.of<EntryProvider>(context, listen: false).loadAllEntries();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.message),
+                  color: AppColors.primary,
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DmPage()),
                   ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  color: AppColors.primary,
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            // Topic list
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: _buildTopicItems(context),
-              ),
-            ),
-          ],
-        ),
-      ),
-      // Bottom navigation bar with four icons
-      bottomNavigationBar: Container(
-        height: 64,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.search),
-              color: AppColors.primary,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SearchPage()),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.shuffle),
-              color: AppColors.primary,
-              onPressed: () => _navigateToRandom(context),
-            ),
-            IconButton(
-              icon: const Icon(Icons.message),
-              color: AppColors.primary,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const DmPage()),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.person),
-              color: AppColors.primary,
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  List<Widget> _buildTopicItems(BuildContext context) => [
-    _buildTopicItem(context, 'who wants to be a millionaire', '125'),
-    _buildTopicItem(context, 'midnight at pera palas', '30'),
-    _buildTopicItem(context, "tatlı sözlük's database of people to chat", '199'),
-    _buildTopicItem(context, 'simple things that make you happy', '280', isHighlighted: true),
-    _buildTopicItem(context, 'sapiosexual', '57'),
-    _buildTopicItem(context, "driver's license fee Rising to 10,000 Lira", '23'),
-    _buildTopicItem(context, 'arda güler', '12'),
-    _buildTopicItem(context, 'january 2023 civil servant salary increase', '10'),
-    _buildTopicItem(context, 'sitting alone in a café', '5'),
-    _buildTopicItem(context, 'a mother monkey bathing her baby', '7'),
-    _buildTopicItem(context, 'december 11 serbian foreign affairs statement', '20'),
-    _buildTopicItem(context, 'post a cat picture for the night', '32'),
-    _buildTopicItem(context, 'seagull 1963', '55'),
-    _buildTopicItem(context, 'judgment (tv series)', '221'),
-  ];
-
-  Widget _buildTopicItem(BuildContext context, String title, String count, {bool isHighlighted = false}) {
+  Widget _buildEntryItem(BuildContext context, Entry entry) {
     return GestureDetector(
-      onTap: () => _navigateToEntryDetail(context, title),
+      onTap: () => _navigateToDetail(context, entry),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
         decoration: BoxDecoration(
-          color: isHighlighted ? const Color(0xFFF6F5FA) : Colors.transparent,
+          color: Colors.transparent,
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+          ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                title,
-                style: AppFonts.entryBodyText.copyWith(color: const Color(0xFF010120)),
+            // Title
+            Text(
+              entry.title,
+              style: AppFonts.entryTitleText.copyWith(
+                color: const Color(0xFF010120),
+                fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(
-              width: 36,
-              child: Text(
-                count,
-                textAlign: TextAlign.right,
-                style: AppFonts.entryBodyText.copyWith(color: const Color(0xFFCDCDCD)),
+            const SizedBox(height: 8),
+            // Description (preview)
+            Text(
+              entry.description.length > 100 
+                  ? '${entry.description.substring(0, 100)}...'
+                  : entry.description,
+              style: AppFonts.entryBodyText.copyWith(
+                color: const Color(0xFF010120),
               ),
+            ),
+            const SizedBox(height: 8),
+            // Author and likes info
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    // Navigate to author's profile
+                    Navigator.pushNamed(
+                      context,
+                      '/user_profile',
+                      arguments: entry.userId,
+                    );
+                  },
+                  child: Text(
+                    'by ${entry.author}',
+                    style: AppFonts.entryBodyText.copyWith(
+                      color: Colors.grey,
+                      fontSize: 14,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.favorite,
+                      color: entry.likedBy.isNotEmpty ? Colors.red : Colors.grey,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${entry.likedBy.length}',
+                      style: AppFonts.entryBodyText.copyWith(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),

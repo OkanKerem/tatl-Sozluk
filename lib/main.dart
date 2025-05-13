@@ -53,6 +53,7 @@ class MyApp extends StatelessWidget {
       title: 'Tatlı Sözlük',
       initialRoute: AppRoutes.initialRoute,
       routes: AppRoutes.routes,
+      onGenerateRoute: AppRoutes.generateRoute,
     );
   }
 }

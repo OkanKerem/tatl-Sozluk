@@ -18,6 +18,9 @@ class UserProvider extends ChangeNotifier {
   List<String> get posts => _posts;
   bool get isLoading => _isLoading;
   
+  // Add userId getter
+  String get userId => _auth.currentUser?.uid ?? '';
+  
   // Firestore ve Auth referansları
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
@@ -146,5 +149,87 @@ class UserProvider extends ChangeNotifier {
     _following = [];
     _posts = [];
     notifyListeners();
+  }
+  
+  // Add getUserById method
+  Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        return userDoc.data();
+      }
+      return null;
+    } catch (e) {
+      print('Error getting user by ID: $e');
+      return null;
+    }
+  }
+  
+  // Follow a user
+  Future<bool> followUser(String targetUserId) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+      
+      // Add targetUserId to current user's following list
+      if (!_following.contains(targetUserId)) {
+        _following.add(targetUserId);
+        await _firestore.collection('users').doc(currentUser.uid).update({
+          'following': _following,
+        });
+      }
+      
+      // Add current user's ID to target user's followers list
+      final targetUserDoc = await _firestore.collection('users').doc(targetUserId).get();
+      if (targetUserDoc.exists) {
+        final targetUserData = targetUserDoc.data()!;
+        final List<String> targetUserFollowers = List<String>.from(targetUserData['followers'] ?? []);
+        
+        if (!targetUserFollowers.contains(currentUser.uid)) {
+          targetUserFollowers.add(currentUser.uid);
+          await _firestore.collection('users').doc(targetUserId).update({
+            'followers': targetUserFollowers,
+          });
+        }
+      }
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error following user: $e');
+      return false;
+    }
+  }
+  
+  // Unfollow a user
+  Future<bool> unfollowUser(String targetUserId) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) return false;
+      
+      // Remove targetUserId from current user's following list
+      _following.remove(targetUserId);
+      await _firestore.collection('users').doc(currentUser.uid).update({
+        'following': _following,
+      });
+      
+      // Remove current user's ID from target user's followers list
+      final targetUserDoc = await _firestore.collection('users').doc(targetUserId).get();
+      if (targetUserDoc.exists) {
+        final targetUserData = targetUserDoc.data()!;
+        final List<String> targetUserFollowers = List<String>.from(targetUserData['followers'] ?? []);
+        
+        targetUserFollowers.remove(currentUser.uid);
+        await _firestore.collection('users').doc(targetUserId).update({
+          'followers': targetUserFollowers,
+        });
+      }
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error unfollowing user: $e');
+      return false;
+    }
   }
 } 

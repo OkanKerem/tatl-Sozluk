@@ -27,17 +27,50 @@ class CommentProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      final commentsSnapshot = await _firestore
-          .collection(_collectionName)
-          .where('entryId', isEqualTo: entryId)
-          .orderBy('createdAt', descending: true)
-          .get();
+      // İlk olarak entry dokümanını yükle ve comments array'ini al
+      final entryDoc = await _firestore.collection('posts').doc(entryId).get();
       
-      _comments = commentsSnapshot.docs
-          .map((doc) => Comment.fromFirestore(doc))
-          .toList();
+      if (!entryDoc.exists) {
+        print('Entry not found with ID: $entryId');
+        _comments = [];
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
       
-      notifyListeners();
+      final entryData = entryDoc.data()!;
+      final commentIds = List<String>.from(entryData['comments'] ?? []);
+      
+      if (commentIds.isEmpty) {
+        print('No comments found for entry: $entryId');
+        _comments = [];
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+      
+      print('Found ${commentIds.length} comment IDs for entry: $entryId');
+      
+      // Comment ID'lerini kullanarak yorumları yükle
+      List<Comment> loadedComments = [];
+      
+      for (String commentId in commentIds) {
+        try {
+          final commentDoc = await _firestore.collection(_collectionName).doc(commentId).get();
+          if (commentDoc.exists) {
+            loadedComments.add(Comment.fromFirestore(commentDoc));
+          }
+        } catch (e) {
+          print('Error loading comment $commentId: $e');
+        }
+      }
+      
+      // Yorumları tarihe göre sırala (en yeni üstte)
+      loadedComments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      _comments = loadedComments;
+      print('Successfully loaded ${_comments.length} comments for entry: $entryId');
+      
     } catch (e) {
       print('Error loading comments: $e');
     } finally {
@@ -66,6 +99,11 @@ class CommentProvider extends ChangeNotifier {
         
         // Yorumu Firestore'a ekle
         final docRef = await _firestore.collection(_collectionName).add(newComment.toMap());
+        
+        // Entry dokümanına comment ID'sini ekle
+        await _firestore.collection('posts').doc(entryId).update({
+          'comments': FieldValue.arrayUnion([docRef.id]),
+        });
         
         // Oluşturulan yorumu yerel listeye ekle
         final createdComment = Comment(
@@ -99,7 +137,22 @@ class CommentProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
+      // Önce silmek istediğimiz yorumu alalım
+      final commentDoc = await _firestore.collection(_collectionName).doc(commentId).get();
+      if (!commentDoc.exists) {
+        return false;
+      }
+      
+      final commentData = commentDoc.data()!;
+      final entryId = commentData['entryId'] as String;
+      
+      // Yorumu sil
       await _firestore.collection(_collectionName).doc(commentId).delete();
+      
+      // Entry'den comment ID'sini kaldır
+      await _firestore.collection('posts').doc(entryId).update({
+        'comments': FieldValue.arrayRemove([commentId]),
+      });
       
       // Yerel listeden kaldır
       _comments.removeWhere((comment) => comment.id == commentId);
