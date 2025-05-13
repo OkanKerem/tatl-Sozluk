@@ -26,42 +26,106 @@ class MessageProvider extends ChangeNotifier {
     _currentChatUserId = otherUserId;
     notifyListeners();
     
+    // Yükleme işlemi çok uzun sürerse otomatik olarak sonlandırmak için timeout ekle
+    // Bu, yükleme ekranının sonsuza kadar gösterilmesini engeller
+    Future.delayed(const Duration(seconds: 10), () {
+      if (_isLoading) {
+        _isLoading = false;
+        notifyListeners();
+        print('Message loading timed out after 10 seconds');
+      }
+    });
+    
     try {
       final currentUser = _auth.currentUser;
       if (currentUser != null) {
-        // İki kullanıcı arasındaki mesajları yüklemek için iki ayrı sorgu oluşturup birleştireceğiz
-        // 1. Sorgu: Ben gönderen, diğer kullanıcı alıcı olan mesajlar
-        final query1 = _firestore
+        // Önce mevcut mesajları temizle
+        _messages = [];
+        
+        // Yükleme durumunu hemen başlat
+        _isLoading = true;
+        notifyListeners();
+        
+        // İlk sorguyu çalıştır ve sonuçları al (akış değil, tek seferlik sorgu)
+        final snapshot1 = await _firestore
             .collection(_collectionName)
             .where('senderId', isEqualTo: currentUser.uid)
             .where('receiverId', isEqualTo: otherUserId)
-            .orderBy('timestamp', descending: true);
+            .orderBy('timestamp', descending: true)
+            .get();
             
-        // 2. Sorgu: Diğer kullanıcı gönderen, ben alıcı olan mesajlar
-        final query2 = _firestore
+        // İkinci sorguyu çalıştır ve sonuçları al
+        final snapshot2 = await _firestore
             .collection(_collectionName)
             .where('senderId', isEqualTo: otherUserId)
             .where('receiverId', isEqualTo: currentUser.uid)
-            .orderBy('timestamp', descending: true);
-            
-        // 1. sorguyu dinle
-        query1.snapshots().listen((snapshot1) {
-          _updateMessages(snapshot1, currentUser.uid, otherUserId);
-        });
+            .orderBy('timestamp', descending: true)
+            .get();
         
-        // 2. sorguyu dinle
-        query2.snapshots().listen((snapshot2) {
-          _updateMessages(snapshot2, currentUser.uid, otherUserId);
-          
-          // Okunmamış mesajları okundu olarak işaretle
-          _markMessagesAsRead(otherUserId);
-        });
+        // Her iki sorgunun sonuçlarını birleştir
+        List<Message> allMessages = [];
+        
+        // İlk sorgudan gelen mesajları ekle
+        for (var doc in snapshot1.docs) {
+          allMessages.add(Message.fromFirestore(doc));
+        }
+        
+        // İkinci sorgudan gelen mesajları ekle
+        for (var doc in snapshot2.docs) {
+          allMessages.add(Message.fromFirestore(doc));
+        }
+        
+        // Mesajları zamana göre sırala (en yeni en üstte)
+        allMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        
+        // Mesajları ayarla
+        _messages = allMessages;
+        
+        // Yükleme durumunu güncelle
+        _isLoading = false;
+        notifyListeners();
+        
+        // Okunmamış mesajları okundu olarak işaretle
+        _markMessagesAsRead(otherUserId);
+        
+        // Şimdi gerçek zamanlı güncellemeler için dinleyicileri ayarla
+        _setupRealTimeListeners(currentUser.uid, otherUserId);
+      } else {
+        _isLoading = false;
+        notifyListeners();
       }
     } catch (e) {
       print('Error loading messages: $e');
       _isLoading = false;
       notifyListeners();
     }
+  }
+  
+  // Gerçek zamanlı güncellemeler için dinleyicileri ayarla
+  void _setupRealTimeListeners(String currentUserId, String otherUserId) {
+    // 1. Sorgu: Ben gönderen, diğer kullanıcı alıcı olan mesajlar
+    _firestore
+        .collection(_collectionName)
+        .where('senderId', isEqualTo: currentUserId)
+        .where('receiverId', isEqualTo: otherUserId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+          _updateMessages(snapshot, currentUserId, otherUserId);
+        });
+        
+    // 2. Sorgu: Diğer kullanıcı gönderen, ben alıcı olan mesajlar
+    _firestore
+        .collection(_collectionName)
+        .where('senderId', isEqualTo: otherUserId)
+        .where('receiverId', isEqualTo: currentUserId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+          _updateMessages(snapshot, currentUserId, otherUserId);
+          // Okunmamış mesajları okundu olarak işaretle
+          _markMessagesAsRead(otherUserId);
+        });
   }
   
   // Mesajları güncelle
