@@ -29,28 +29,32 @@ class MessageProvider extends ChangeNotifier {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser != null) {
-        // İki kullanıcı arasındaki mesajları yükle (gönderilen ve alınan)
-        final messagesStream = _firestore
+        // İki kullanıcı arasındaki mesajları yüklemek için iki ayrı sorgu oluşturup birleştireceğiz
+        // 1. Sorgu: Ben gönderen, diğer kullanıcı alıcı olan mesajlar
+        final query1 = _firestore
             .collection(_collectionName)
-            .where('senderId', whereIn: [currentUser.uid, otherUserId])
-            .where('receiverId', whereIn: [currentUser.uid, otherUserId])
-            .orderBy('timestamp', descending: true)
-            .snapshots();
+            .where('senderId', isEqualTo: currentUser.uid)
+            .where('receiverId', isEqualTo: otherUserId)
+            .orderBy('timestamp', descending: true);
+            
+        // 2. Sorgu: Diğer kullanıcı gönderen, ben alıcı olan mesajlar
+        final query2 = _firestore
+            .collection(_collectionName)
+            .where('senderId', isEqualTo: otherUserId)
+            .where('receiverId', isEqualTo: currentUser.uid)
+            .orderBy('timestamp', descending: true);
+            
+        // 1. sorguyu dinle
+        query1.snapshots().listen((snapshot1) {
+          _updateMessages(snapshot1, currentUser.uid, otherUserId);
+        });
         
-        // Stream'i dinle
-        messagesStream.listen((snapshot) {
-          _messages = snapshot.docs
-              .map((doc) => Message.fromFirestore(doc))
-              .where((message) => 
-                  (message.senderId == currentUser.uid && message.receiverId == otherUserId) || 
-                  (message.senderId == otherUserId && message.receiverId == currentUser.uid))
-              .toList();
+        // 2. sorguyu dinle
+        query2.snapshots().listen((snapshot2) {
+          _updateMessages(snapshot2, currentUser.uid, otherUserId);
           
           // Okunmamış mesajları okundu olarak işaretle
           _markMessagesAsRead(otherUserId);
-          
-          _isLoading = false;
-          notifyListeners();
         });
       }
     } catch (e) {
@@ -58,6 +62,32 @@ class MessageProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+  
+  // Mesajları güncelle
+  void _updateMessages(QuerySnapshot snapshot, String currentUserId, String otherUserId) {
+    // Mevcut mesajları sakla
+    final List<Message> currentMessages = List.from(_messages);
+    
+    // Yeni mesajları ekle
+    for (var doc in snapshot.docs) {
+      final newMessage = Message.fromFirestore(doc);
+      
+      // Bu mesaj zaten var mı kontrol et
+      final messageExists = currentMessages.any((m) => m.id == newMessage.id);
+      
+      if (!messageExists) {
+        currentMessages.add(newMessage);
+      }
+    }
+    
+    // Mesajları zamana göre sırala (en yeni en üstte)
+    currentMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    
+    // Mesajları güncelle
+    _messages = currentMessages;
+    _isLoading = false;
+    notifyListeners();
   }
   
   // Mesajları okundu olarak işaretle
