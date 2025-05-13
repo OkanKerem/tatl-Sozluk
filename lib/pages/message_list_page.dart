@@ -164,93 +164,88 @@ class _MessageListPageState extends State<MessageListPage> {
   }
   
   void _showNewConversationDialog() {
-    final TextEditingController _usernameController = TextEditingController();
+    _isLoading = true;
+    setState(() {});
     
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Start New Conversation', style: AppFonts.infoLabelText),
-        content: TextField(
-          controller: _usernameController,
-          decoration: const InputDecoration(
-            labelText: 'Username',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppFonts.entryBodyText),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (_usernameController.text.trim().isEmpty) {
-                return;
-              }
-              
-              Navigator.pop(context);
-              
-              // Search for the user by username
-              await _searchUserAndNavigate(_usernameController.text.trim());
-            },
-            child: Text('Search', style: AppFonts.entryBodyText),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Future<void> _searchUserAndNavigate(String username) async {
-    setState(() {
-      _isLoading = true;
-    });
+    // Tüm kullanıcıları Firestore'dan getir
+    final firestore = FirebaseFirestore.instance;
+    final currentUserId = Provider.of<UserProvider>(context, listen: false).userId;
     
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final usersSnapshot = await firestore
-          .collection('users')
-          .where('nickname', isEqualTo: username)
-          .limit(1)
-          .get();
-      
-      if (usersSnapshot.docs.isNotEmpty) {
-        final userDoc = usersSnapshot.docs.first;
-        final userId = userDoc.id;
-        final username = userDoc.data()['nickname'] ?? 'Unknown User';
-        
-        // Navigate to the DM page
-        if (mounted) {
-          Navigator.pushNamed(
-            context,
-            '/dm',
-            arguments: {
-              'userId': userId,
-              'username': username,
-            },
+    firestore
+        .collection('users')
+        .get()
+        .then((snapshot) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          final List<Map<String, dynamic>> users = [];
+          for (var doc in snapshot.docs) {
+            // Kendimizi listeden çıkar
+            if (doc.id != currentUserId) {
+              users.add({
+                'id': doc.id,
+                'nickname': doc.data()['nickname'] ?? 'Unknown User',
+                'profilePicture': doc.data()['profilePicture'] ?? 1,
+              });
+            }
+          }
+          
+          // Kullanıcıları nickname'e göre sırala
+          users.sort((a, b) => a['nickname'].toString().compareTo(b['nickname'].toString()));
+          
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Select User', style: AppFonts.infoLabelText),
+              content: Container(
+                width: double.maxFinite,
+                height: 300,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.primary,
+                        child: Icon(Icons.person, color: Colors.white),
+                      ),
+                      title: Text(user['nickname'], style: AppFonts.usernameText),
+                      onTap: () {
+                        Navigator.pop(context); // Dialog'u kapat
+                        
+                        // DM sayfasına geçiş yap
+                        Navigator.pushNamed(
+                          context,
+                          '/dm',
+                          arguments: {
+                            'userId': user['id'],
+                            'username': user['nickname'],
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: AppFonts.entryBodyText),
+                ),
+              ],
+            ),
           );
-        }
-      } else {
-        // User not found
-        if (mounted) {
+        })
+        .catchError((error) {
+          setState(() {
+            _isLoading = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User not found')),
+            SnackBar(content: Text('Error loading users: ${error.toString()}')),
           );
-        }
-      }
-    } catch (e) {
-      print('Error searching for user: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error searching for user')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
         });
-      }
-    }
   }
   
   // Format the timestamp
