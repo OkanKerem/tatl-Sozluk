@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:tatli_sozluk/providers/user_provider.dart';
 import 'package:tatli_sozluk/providers/entry_provider.dart';
 import 'package:tatli_sozluk/providers/comment_provider.dart';
+import 'package:tatli_sozluk/providers/message_provider.dart';
 
 Future<void> main() async {
   // Ensure Flutter bindings are initialized
@@ -36,6 +37,9 @@ Future<void> main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => CommentProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => MessageProvider(),
         ),
       ],
       child: const MyApp(),

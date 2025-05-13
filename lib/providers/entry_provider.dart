@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
@@ -8,11 +9,13 @@ class EntryProvider extends ChangeNotifier {
   List<Entry> _userEntries = [];
   List<Entry> _allEntries = [];
   bool _isLoading = false;
+  Entry? _randomEntry;
   
   // Getters
   List<Entry> get userEntries => _userEntries;
   List<Entry> get allEntries => _allEntries;
   bool get isLoading => _isLoading;
+  Entry? get randomEntry => _randomEntry;
   
   // Firestore ve Auth referansları
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -20,6 +23,41 @@ class EntryProvider extends ChangeNotifier {
   
   // Koleksiyon adı
   final String _collectionName = 'posts';
+  
+  // Random entry getir
+  Future<Entry?> getRandomEntry() async {
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Tüm entry'leri getir
+      final entriesSnapshot = await _firestore
+          .collection(_collectionName)
+          .get();
+      
+      if (entriesSnapshot.docs.isEmpty) {
+        _randomEntry = null;
+        notifyListeners(); // Ensure UI updates if no entries found
+        return null;
+      }
+      
+      // Random bir entry seçmek için Random sınıfını kullan
+      final randomIndex = Random().nextInt(entriesSnapshot.docs.length);
+      final randomDoc = entriesSnapshot.docs[randomIndex];
+      
+      _randomEntry = Entry.fromFirestore(randomDoc);
+      notifyListeners();
+      return _randomEntry;
+    } catch (e) {
+      print('Error getting random entry: $e');
+      _randomEntry = null; // Clear random entry on error
+      notifyListeners();
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
   
   // Kullanıcının kendi entry'lerini yükle
   Future<void> loadUserEntries() async {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
 import 'package:tatli_sozluk/pages/random_entry_page.dart';
@@ -10,7 +9,7 @@ import 'package:tatli_sozluk/profile_part.dart';
 import 'package:tatli_sozluk/entry_detail.dart';
 
 class MainPage extends StatelessWidget {
-  const MainPage({Key? key}) : super(key: key);
+  const MainPage({super.key});
 
   void _navigateToRandom(BuildContext context) {
     Navigator.push(
@@ -119,9 +118,9 @@ class MainPage extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.message),
               color: AppColors.primary,
-              onPressed: () => Navigator.push(
+              onPressed: () => Navigator.pushNamed(
                 context,
-                MaterialPageRoute(builder: (_) => const DmPage()),
+                '/messages',
               ),
             ),
             IconButton(

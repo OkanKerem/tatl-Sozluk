@@ -18,6 +18,9 @@ class UserProvider extends ChangeNotifier {
   List<String> get posts => _posts;
   bool get isLoading => _isLoading;
   
+  // Kullanıcının ID'sini almak için getter
+  String get userId => _auth.currentUser?.uid ?? '';
+  
   // Firestore ve Auth referansları
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;

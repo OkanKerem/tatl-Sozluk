@@ -7,6 +7,8 @@ import 'package:tatli_sozluk/settings_page.dart';
 import 'package:tatli_sozluk/sign_in.dart';
 import 'package:tatli_sozluk/dm.dart';
 import 'package:tatli_sozluk/search_page.dart';
+import 'package:tatli_sozluk/pages/message_list_page.dart';
+
 class AppRoutes {
   static const initialRoute ='/login';
 
@@ -19,5 +21,6 @@ class AppRoutes {
     '/signin': (context) => const SignInScreen(),
     '/dm': (context) => const DmPage(),
     '/search' :(context) => const SearchPage(),
+    '/messages': (context) => const MessageListPage(),
   };
 }
