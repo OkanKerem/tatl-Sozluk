@@ -5,12 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:tatli_sozluk/providers/user_provider.dart';
 import 'package:tatli_sozluk/providers/entry_provider.dart';
 import 'package:tatli_sozluk/models/entry_model.dart';
-import 'package:tatli_sozluk/entry_detail.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? userId; // If null, displays current user's profile
   
-  const ProfilePage({Key? key, this.userId}) : super(key: key);
+  const ProfilePage({super.key, this.userId});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
