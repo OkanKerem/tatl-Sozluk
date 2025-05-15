@@ -152,14 +152,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // Change nickname dialog
   void _showChangeNicknameDialog() {
-    final TextEditingController _nicknameController = TextEditingController();
+    final TextEditingController nicknameController = TextEditingController();
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Change Nickname', style: AppFonts.infoLabelText),
         content: TextField(
-          controller: _nicknameController,
+          controller: nicknameController,
           decoration: InputDecoration(
             hintText: 'Enter new nickname',
             hintStyle: AppFonts.entryBodyText.copyWith(color: Colors.grey),
@@ -172,9 +172,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           TextButton(
             onPressed: () {
-              if (_nicknameController.text.trim().isNotEmpty) {
+              if (nicknameController.text.trim().isNotEmpty) {
                 Navigator.pop(context);
-                _updateNickname(_nicknameController.text.trim());
+                _updateNickname(nicknameController.text.trim());
               }
             },
             child: Text('Save', style: AppFonts.entryBodyText),

@@ -5,12 +5,11 @@ import 'package:tatli_sozluk/utils/fonts.dart';
 import 'package:tatli_sozluk/search_page.dart';
 import 'package:tatli_sozluk/dm.dart';
 import 'package:tatli_sozluk/profile_part.dart';
-import 'package:tatli_sozluk/entry_detail.dart';
 import 'package:tatli_sozluk/providers/entry_provider.dart';
 import 'package:tatli_sozluk/models/entry_model.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({Key? key}) : super(key: key);
+  const MainPage({super.key});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -70,13 +69,13 @@ class _MainPageState extends State<MainPage> {
                           });
                         },
                         style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(
+                          backgroundColor: WidgetStateProperty.all(
                             _sortByNewest ? AppColors.primary : Colors.transparent,
                           ),
-                          padding: MaterialStateProperty.all(
+                          padding: WidgetStateProperty.all(
                             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           ),
-                          shape: MaterialStateProperty.all(
+                          shape: WidgetStateProperty.all(
                             RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -97,13 +96,13 @@ class _MainPageState extends State<MainPage> {
                           });
                         },
                         style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(
+                          backgroundColor: WidgetStateProperty.all(
                             !_sortByNewest ? AppColors.primary : Colors.transparent,
                           ),
-                          padding: MaterialStateProperty.all(
+                          padding: WidgetStateProperty.all(
                             const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           ),
-                          shape: MaterialStateProperty.all(
+                          shape: WidgetStateProperty.all(
                             RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),

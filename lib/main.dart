@@ -6,13 +6,14 @@ import 'package:provider/provider.dart';
 import 'package:tatli_sozluk/providers/user_provider.dart';
 import 'package:tatli_sozluk/providers/entry_provider.dart';
 import 'package:tatli_sozluk/providers/comment_provider.dart';
+import 'package:tatli_sozluk/providers/search_provider.dart';
 
 Future<void> main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   
   // Load environment variables
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: "assets/.env");
   
   // Initialize Firebase with options from environment variables
   await Firebase.initializeApp(
@@ -26,21 +27,24 @@ Future<void> main() async {
   );
   
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (context) => UserProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => EntryProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => CommentProvider(),
-        ),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  MultiProvider(
+    providers: [
+      ChangeNotifierProvider(
+        create: (context) => UserProvider(),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => EntryProvider(),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => CommentProvider(),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => SearchProvider(), 
+      ),
+    ],
+    child: const MyApp(),
+  ),
+);
 }
 
 class MyApp extends StatelessWidget {
@@ -48,6 +52,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    //  Confirming SearchProvider is accessible from context:
+    final searchProvider = Provider.of<SearchProvider>(context, listen: false);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tatlı Sözlük',
