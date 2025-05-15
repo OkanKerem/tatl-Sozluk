@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import 'utils/colors.dart';
-import 'utils/fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:tatli_sozluk/providers/search_provider.dart';
+import 'package:tatli_sozluk/utils/fonts.dart';
+import 'package:tatli_sozluk/entry_detail.dart';
+import 'package:tatli_sozluk/models/entry_model.dart';
 
 class SearchPage extends StatelessWidget {
-  const SearchPage({Key? key}) : super(key: key);
+  const SearchPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final searchProvider = Provider.of<SearchProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -22,6 +27,9 @@ class SearchPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: TextField(
+            onChanged: (query) {
+              searchProvider.searchEntries(query);
+            },
             decoration: InputDecoration(
               hintText: 'Ara...',
               hintStyle: AppFonts.entryBodyText.copyWith(
@@ -38,66 +46,74 @@ class SearchPage extends StatelessWidget {
       ),
       body: Container(
         color: const Color(0xFFF5EFFF),
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          children: _buildSearchResults(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: searchProvider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : searchProvider.hasSearched && searchProvider.searchResults.isEmpty
+                ? const Center(child: Text("No results found"))
+                : ListView.builder(
+                    itemCount: searchProvider.searchResults.length,
+                    itemBuilder: (context, index) {
+                      final entry = searchProvider.searchResults[index];
+                      return _buildEntryCard(context, entry);
+                    },
+                  ),
+      ),
+    );
+  }
+
+  Widget _buildEntryCard(BuildContext context, Entry entry) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/entry_detail',
+        arguments: entry.id,
+      ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              entry.title,
+              style: AppFonts.entryTitleText.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              entry.description,
+              style: AppFonts.entryBodyText.copyWith(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'by ${entry.author}',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+                Row(
+                  children: [
+                    Icon(Icons.favorite, color: Colors.red, size: 16),
+                    const SizedBox(width: 4),
+                    Text('${entry.likedBy.length}'),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
-
-  List<Widget> _buildSearchResults() {
-    final results = [
-      {'title': 'who wants to be a millionaire', 'count': '125'},
-      {'title': 'midnight at pera palas', 'count': '30'},
-      {'title': 'tatlı sözlük\'s database of people to chat', 'count': '199'},
-      {'title': 'simple things that make you happy', 'count': '280'},
-      {'title': 'sapiosexual', 'count': '57'},
-      {'title': 'driver\'s license fee Rising to 10,000 Lira', 'count': '23'},
-      {'title': 'arda güler', 'count': '12'},
-      {'title': 'january 2023 civil servant salary increase', 'count': '10'},
-      {'title': 'sitting alone in a café', 'count': '5'},
-      {'title': 'a mother monkey bathing her baby', 'count': '7'},
-      {'title': 'december 11 serbian foreign affairs statement', 'count': '20'},
-      {'title': 'post a cat picture for the night', 'count': '32'},
-      {'title': 'seagull 1963', 'count': '55'},
-      {'title': 'judgment (tv series)', 'count': '221'},
-    ];
-
-    return results.map((result) => _buildSearchResultItem(result['title']!, result['count']!)).toList();
-  }
-
-  Widget _buildSearchResultItem(String title, String count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: AppFonts.entryBodyText.copyWith(
-                color: const Color(0xFF010120),
-                fontSize: 14,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 36,
-            child: Text(
-              count,
-              textAlign: TextAlign.right,
-              style: AppFonts.entryBodyText.copyWith(
-                color: const Color(0xFFCDCDCD),
-                fontSize: 14,
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-} 
+}

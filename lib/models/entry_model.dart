@@ -40,6 +40,7 @@ class Entry {
   Map<String, dynamic> toMap() {
     return {
       'title': title,
+      'title_lowercase': title.toLowerCase(),
       'description': description,
       'author': author,
       'userId': userId,

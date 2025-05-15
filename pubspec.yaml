@@ -70,7 +70,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/Images/
-    - .env
+    - assets/.env
 
   #   - images/a_dot_ham.jpeg
 

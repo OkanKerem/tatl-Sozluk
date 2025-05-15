@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:io';  // For File operations
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';  // For handling network images
+// For File operations
+// For handling network images
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
 import 'package:tatli_sozluk/services/auth_service.dart';
