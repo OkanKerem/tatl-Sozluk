@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
-import 'package:tatli_sozluk/entry_detail.dart';
 import 'package:tatli_sozluk/providers/entry_provider.dart';
 import 'package:tatli_sozluk/models/entry_model.dart';
 

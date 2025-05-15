@@ -9,7 +9,7 @@ import 'package:tatli_sozluk/models/entry_model.dart';
 class OtherProfilePage extends StatefulWidget {
   final String userId;
   
-  const OtherProfilePage({Key? key, required this.userId}) : super(key: key);
+  const OtherProfilePage({super.key, required this.userId});
 
   @override
   State<OtherProfilePage> createState() => _OtherProfilePageState();
