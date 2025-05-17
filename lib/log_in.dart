@@ -30,8 +30,17 @@ class _LoginPageState extends State<LoginPage> {
         }
       } catch (e) {
         if (mounted) {
+          String errorMessage = 'Error: ${e.toString()}';
+          
+          // Check for Firebase Auth errors related to user not existing
+          if (e.toString().contains('user-not-found') || 
+              e.toString().contains('invalid-credential') ||
+              e.toString().contains('INVALID_LOGIN_CREDENTIALS')) {
+            errorMessage = 'This profile was not found. Email or password is incorrect.';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: ${e.toString()}')),
+            SnackBar(content: Text(errorMessage)),
           );
         }
       } finally {
@@ -104,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
                     // Username or email field
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('username or email', style: AppFonts.infoLabelText),
+                      child: Text('Email', style: AppFonts.infoLabelText),
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -122,7 +131,12 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Username or email is required';
+                            return 'Email is required';
+                          }
+                          // Email format validation
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(value)) {
+                            return 'Please enter a valid email address';
                           }
                           return null;
                         },
@@ -134,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
                     // Password field
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('password', style: AppFonts.infoLabelText),
+                      child: Text('Password', style: AppFonts.infoLabelText),
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -178,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: _isLoading
                             ? const CircularProgressIndicator(color: Colors.white)
                             : Text(
-                                'log in',
+                                'Log in',
                                 style: AppFonts.deleteButtonText,
                               ),
                       ),
@@ -186,14 +200,14 @@ class _LoginPageState extends State<LoginPage> {
                     
                     const SizedBox(height: 24),
                     
-                    // "Didn't sign in?" text
+                    // "Don't have an account?" text
                     GestureDetector(
                       onTap: () {
                         // Navigate to sign in screen
                         Navigator.pushNamed(context, '/signin');
                       },
                       child: Text(
-                        "Didn't sign in?",
+                        "Don't have an account?",
                         style: AppFonts.entryBodyText.copyWith(
                           decoration: TextDecoration.underline,
                           color: AppColors.primary,

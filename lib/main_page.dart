@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tatli_sozluk/pages/message_list_page.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
 import 'package:tatli_sozluk/search_page.dart';
@@ -161,7 +162,7 @@ class _MainPageState extends State<MainPage> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.refresh),
+                  icon: const Icon(Icons.home),
                   color: AppColors.primary,
                   onPressed: () {
                     // Refresh entries
@@ -173,7 +174,7 @@ class _MainPageState extends State<MainPage> {
                   color: AppColors.primary,
                   onPressed: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const DmPage()),
+                    MaterialPageRoute(builder: (_) => const MessageListPage()),
                   ),
                 ),
                 IconButton(
@@ -249,14 +250,16 @@ class _MainPageState extends State<MainPage> {
                 ),
                 Row(
                   children: [
-                    Icon(
-                      Icons.favorite,
-                      color: entry.likedBy.isNotEmpty ? Colors.red : Colors.grey,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
                     Text(
-                      '${entry.likedBy.length}',
+                      '${entry.likedBy.length} likes',
+                      style: AppFonts.entryBodyText.copyWith(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${entry.comments.length} comments',
                       style: AppFonts.entryBodyText.copyWith(
                         color: Colors.grey,
                         fontSize: 14,

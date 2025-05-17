@@ -42,6 +42,8 @@ dependencies:
   flutter_dotenv: ^5.1.0
   # State management
   provider: ^6.0.5
+  # Reactive extensions
+  rxdart: ^0.27.7
   
   # Add other Firebase services as needed, such as:
   # firebase_storage: ^11.6.10
@@ -70,7 +72,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/Images/
-    - assets/.env
+    - .env
 
   #   - images/a_dot_ham.jpeg
 

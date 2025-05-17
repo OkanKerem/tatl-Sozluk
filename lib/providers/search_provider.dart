@@ -43,19 +43,22 @@ class SearchProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 🔍 Prefix match
+      // Convert query to lowercase for case-insensitive search
+      final lowercaseQuery = query.toLowerCase();
+      
+      // 🔍 Use title_lowercase field for case-insensitive search
       final querySnapshot = await _firestore
-          .collection('posts') // ✅ changed to posts
-          .orderBy('title')
-          .startAt([query])
-          .endAt(['$query\uf8ff'])
+          .collection('posts')
+          .orderBy('title_lowercase')
+          .startAt([lowercaseQuery])
+          .endAt(['$lowercaseQuery\uf8ff'])
           .get();
 
-      // 🔍 Contains match (case-sensitive, no lowercase support yet)
+      // 🔍 Contains match using lowercase field
       final containsQuerySnapshot = await _firestore
-          .collection('posts') // ✅ changed to posts
-          .where('title', isGreaterThanOrEqualTo: query)
-          .where('title', isLessThanOrEqualTo: '$query\uf8ff')
+          .collection('posts')
+          .where('title_lowercase', isGreaterThanOrEqualTo: lowercaseQuery)
+          .where('title_lowercase', isLessThanOrEqualTo: '$lowercaseQuery\uf8ff')
           .get();
 
       final Map<String, Entry> uniqueResults = {};
@@ -72,16 +75,16 @@ class SearchProvider extends ChangeNotifier {
 
       _searchResults = uniqueResults.values.toList();
 
-      // Sort results
+      // Sort results - use case-insensitive comparison
       _searchResults.sort((a, b) {
-        final aExact = a.title == query;
-        final bExact = b.title == query;
+        final aExact = a.title.toLowerCase() == lowercaseQuery;
+        final bExact = b.title.toLowerCase() == lowercaseQuery;
 
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
 
-        final aStarts = a.title.startsWith(query);
-        final bStarts = b.title.startsWith(query);
+        final aStarts = a.title.toLowerCase().startsWith(lowercaseQuery);
+        final bStarts = b.title.toLowerCase().startsWith(lowercaseQuery);
 
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;

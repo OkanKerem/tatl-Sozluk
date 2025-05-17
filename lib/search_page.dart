@@ -31,7 +31,7 @@ class SearchPage extends StatelessWidget {
               searchProvider.searchEntries(query);
             },
             decoration: InputDecoration(
-              hintText: 'Ara...',
+              hintText: 'Search entries...',
               hintStyle: AppFonts.entryBodyText.copyWith(
                 color: const Color(0xFF90A4AE),
                 fontSize: 14,
@@ -47,17 +47,51 @@ class SearchPage extends StatelessWidget {
       body: Container(
         color: const Color(0xFFF5EFFF),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        child: searchProvider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : searchProvider.hasSearched && searchProvider.searchResults.isEmpty
-                ? const Center(child: Text("No results found"))
-                : ListView.builder(
-                    itemCount: searchProvider.searchResults.length,
-                    itemBuilder: (context, index) {
-                      final entry = searchProvider.searchResults[index];
-                      return _buildEntryCard(context, entry);
-                    },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (searchProvider.hasSearched && searchProvider.searchQuery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'Results for "${searchProvider.searchQuery}" ',
+                  style: AppFonts.entryBodyText.copyWith(
+                    color: Colors.grey[700],
+                    fontSize: 14,
                   ),
+                ),
+              ),
+            
+            Expanded(
+              child: searchProvider.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : searchProvider.hasSearched && searchProvider.searchResults.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+                              const SizedBox(height: 16),
+                              Text(
+                                "No results found for \"${searchProvider.searchQuery}\"",
+                                style: AppFonts.entryBodyText.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: searchProvider.searchResults.length,
+                          itemBuilder: (context, index) {
+                            final entry = searchProvider.searchResults[index];
+                            return _buildEntryCard(context, entry);
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
   }
