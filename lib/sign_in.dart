@@ -150,8 +150,21 @@ class _SignInScreenState extends State<SignInScreen> {
         }
       } catch (e) {
         if (mounted) {
+          String errorMessage = 'Error: ${e.toString()}';
+          
+          // Check for Firebase Auth errors
+          if (e.toString().contains('email-already-in-use')) {
+            errorMessage = 'This email is already registered. Please use a different email or login to your existing account.';
+          } else if (e.toString().contains('weak-password')) {
+            errorMessage = 'Password is too weak. Please use a stronger password.';
+          } else if (e.toString().contains('invalid-email')) {
+            errorMessage = 'Please enter a valid email address.';
+          } else if (e.toString().contains('network-request-failed')) {
+            errorMessage = 'Network error. Please check your internet connection and try again.';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Hata: ${e.toString()}')),
+            SnackBar(content: Text(errorMessage)),
           );
         }
       } finally {

@@ -1,35 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:tatli_sozluk/utils/colors.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tatli_sozluk/models/message_model.dart';
+import 'package:tatli_sozluk/services/message_service.dart';
 
-class DmPage extends StatelessWidget {
-  const DmPage({super.key});
+class DmPage extends StatefulWidget {
+  final String receiverId;
+  final String receiverName;
+  
+  const DmPage({
+    super.key, 
+    required this.receiverId,
+    required this.receiverName,
+  });
 
-  final List<Map<String, dynamic>> messages = const [
-    {
-      'fromMe': false,
-      'text': "can you send me invite for that entry you mentioned?",
-    },
-    {'fromMe': true, 'text': "yes ofc. pls click on it and you’ll see."},
-    {
-      'fromMe': false,
-      'text': "Invitation:(What should i do before gym?)",
-      'invitation': true,
-    },
-    {
-      'fromMe': false,
-      'text':
-      "that’s awesome. Also, I liked your entry. Therefore, i’ll give you 10 points as gift!",
-      'gift': true,
-    },
-    {
-      'fromMe': false,
-      'text': "Sent gift : 10 points!",
-      'gift': true,
-      'green': true,
-    },
-    {'fromMe': true, 'text': "thank youu so much!"},
-  ];
+  @override
+  State<DmPage> createState() => _DmPageState();
+}
+
+class _DmPageState extends State<DmPage> {
+  final TextEditingController _messageController = TextEditingController();
+  final MessageService _messageService = MessageService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? currentUserId;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    currentUserId = _auth.currentUser?.uid;
+    // Mark messages as read
+    if (currentUserId != null) {
+      _messageService.markMessagesAsRead(currentUserId!, widget.receiverId);
+    }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() async {
+    if (_messageController.text.trim().isEmpty || currentUserId == null) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      await _messageService.sendMessage(
+        content: _messageController.text.trim(),
+        senderId: currentUserId!,
+        receiverId: widget.receiverId,
+      );
+      _messageController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending message: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +96,7 @@ class DmPage extends StatelessWidget {
           const SizedBox(width: 12),
           const CircleAvatar(child: Icon(Icons.person)),
           const SizedBox(width: 10),
-          Text("Cem", style: AppFonts.usernameText),
+          Text(widget.receiverName, style: AppFonts.usernameText),
           const Spacer(),
           const Icon(Icons.card_giftcard),
           const SizedBox(width: 10),
@@ -70,52 +107,86 @@ class DmPage extends StatelessWidget {
   }
 
   Widget _buildMessageList() {
+    if (currentUserId == null) {
+      return const Center(child: Text("Please log in"));
+    }
+    
     return Expanded(
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: messages.length,
-        itemBuilder: (context, index) {
-          final message = messages[index];
-          final fromMe = message['fromMe'] ?? false;
-          final bgColor =
-          message['green'] == true
-              ? Colors.green[100]
-              : fromMe
-              ? Colors.grey[300]
-              : AppColors.background;
-          final align =
-          fromMe ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-
-          return Column(
-            crossAxisAlignment: align,
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  message['text'],
-                  style: AppFonts.entryBodyText.copyWith(
-                    color:
-                    message['green'] == true ? Colors.green : Colors.black,
+      child: StreamBuilder<List<Message>>(
+        stream: _messageService.getMessages(currentUserId!, widget.receiverId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+          
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No messages yet"));
+          }
+          
+          final messages = snapshot.data!;
+          
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: messages.length,
+            reverse: true,
+            itemBuilder: (context, index) {
+              final message = messages[index];
+              final fromMe = message.senderId == currentUserId;
+              
+              return Column(
+                crossAxisAlignment: fromMe 
+                    ? CrossAxisAlignment.end 
+                    : CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: fromMe ? Colors.grey[300] : AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          message.content,
+                          style: AppFonts.entryBodyText,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatTimestamp(message.timestamp),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              if (message['gift'] == true || message['invitation'] == true)
-                Icon(
-                  message['gift'] == true
-                      ? Icons.card_giftcard
-                      : Icons.mail_outline,
-                  color: AppColors.primary,
-                ),
-            ],
+                ],
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  String _formatTimestamp(Timestamp timestamp) {
+    final dateTime = timestamp.toDate();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    
+    if (messageDate == today) {
+      return '${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${dateTime.day}/${dateTime.month} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   Widget _buildMessageInput() {
@@ -128,6 +199,7 @@ class DmPage extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: TextField(
+              controller: _messageController,
               decoration: InputDecoration(
                 hintText: "Type a message...",
                 fillColor: Colors.white,
@@ -136,10 +208,16 @@ class DmPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              onSubmitted: (_) => _sendMessage(),
             ),
           ),
           const SizedBox(width: 10),
-          const Icon(Icons.camera_alt, color: Colors.black),
+          _isLoading
+              ? const CircularProgressIndicator(color: Colors.white)
+              : IconButton(
+                  icon: const Icon(Icons.send, color: Colors.white),
+                  onPressed: _sendMessage,
+                ),
         ],
       ),
     );

@@ -179,24 +179,61 @@ class _OtherProfilePageState extends State<OtherProfilePage> {
                 Text(displayUsername, style: AppFonts.usernameText),
                 const SizedBox(height: 16),
                 
-                // Follow/Unfollow button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isFollowing ? Colors.grey : AppColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                // Follow/Unfollow button and Message button row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isFollowing ? Colors.grey : AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      onPressed: _toggleFollow,
+                      child: Text(
+                        isFollowing ? 'Unfollow' : 'Follow',
+                        style: const TextStyle(
+                          fontFamily: 'Itim',
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                  ),
-                  onPressed: _toggleFollow,
-                  child: Text(
-                    isFollowing ? 'Unfollow' : 'Follow',
-                    style: const TextStyle(
-                      fontFamily: 'Itim',
-                      color: Colors.white,
-                      fontSize: 16,
+                    
+                    const SizedBox(width: 12),
+                    
+                    // Message button
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.message, color: Colors.white),
+                      label: const Text(
+                        'Message',
+                        style: TextStyle(
+                          fontFamily: 'Itim',
+                          color: Colors.white,
+                          fontSize: 16,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/dm',
+                          arguments: {
+                            'receiverId': widget.userId,
+                            'receiverName': displayUsername,
+                          },
+                        );
+                      },
                     ),
-                  ),
+                  ],
                 ),
                 
                 const SizedBox(height: 16),

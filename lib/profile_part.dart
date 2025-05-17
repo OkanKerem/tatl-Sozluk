@@ -228,6 +228,87 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Show edit entry dialog
+  void showEditEntryDialog(Entry entry) {
+    _titleController.text = entry.title;
+    _descriptionController.text = entry.description;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Entry', style: AppFonts.infoLabelText),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  border: OutlineInputBorder(),
+                ),
+                maxLength: 50,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 5,
+                maxLength: 500,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: AppFonts.entryBodyText),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (_titleController.text.trim().isNotEmpty && 
+                  _descriptionController.text.trim().isNotEmpty) {
+                Navigator.pop(context);
+                await updateEntry(entry.id);
+              }
+            },
+            child: Text('Save', style: AppFonts.entryBodyText),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Update entry
+  Future<void> updateEntry(String entryId) async {
+    final entryProvider = Provider.of<EntryProvider>(context, listen: false);
+    
+    // Update the entry using EntryProvider
+    bool success = await entryProvider.updateEntry(
+      entryId,
+      _titleController.text.trim(),
+      _descriptionController.text.trim(),
+    );
+    
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Entry updated successfully')),
+      );
+      // Refresh user entry list
+      await entryProvider.loadUserEntries();
+      setState(() {
+        userEntries = entryProvider.userEntries;
+      });
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update entry')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -324,73 +405,107 @@ class _ProfilePageState extends State<ProfilePage> {
                           itemCount: userEntries.length,
                           itemBuilder: (context, index) {
                             final entry = userEntries[index];
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: GestureDetector(
-                                onTap: () => _navigateToEntryDetail(entry),
-                                child: Card(
-                                  elevation: 2,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(entry.title, style: AppFonts.entryTitleText),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          entry.description.length > 100
-                                              ? '${entry.description.substring(0, 100)}...'
-                                              : entry.description,
-                                          style: AppFonts.entryBodyText
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            // Like bilgisi
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.favorite,
-                                                  color: entry.likedBy.isNotEmpty ? Colors.red : Colors.grey,
-                                                  size: 20,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${entry.likedBy.length}',
-                                                  style: AppFonts.entryBodyText.copyWith(
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            if (isOwnProfile) TextButton(
-                                              onPressed: () => deleteEntry(entry.id),
-                                              style: TextButton.styleFrom(
-                                                backgroundColor: AppColors.primary,
-                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                              ),
-                                              child: Text('Delete', style: AppFonts.deleteButtonText),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
+                            return _buildEntryItem(entry);
                           },
                         ),
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildEntryItem(Entry entry) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: () => _navigateToEntryDetail(entry),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title
+              Text(
+                entry.title,
+                style: AppFonts.entryTitleText,
+              ),
+              const SizedBox(height: 8),
+              // Content preview
+              Text(
+                entry.description.length > 100
+                    ? '${entry.description.substring(0, 100)}...'
+                    : entry.description,
+                style: AppFonts.entryBodyText,
+              ),
+              const SizedBox(height: 12),
+              // Stats and actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Likes and comments count
+                  Row(
+                    children: [
+                      Icon(Icons.favorite, color: Colors.red, size: 16),
+                      const SizedBox(width: 4),
+                      Text('${entry.likedBy.length}'),
+                      const SizedBox(width: 8),
+                      Icon(Icons.comment, color: Colors.grey, size: 16),
+                      const SizedBox(width: 4),
+                      Text('${entry.comments.length}'),
+                    ],
+                  ),
+                  // Actions (edit, delete) - only for own entries
+                  if (isOwnProfile)
+                    Row(
+                      children: [
+                        // Edit button
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => showEditEntryDialog(entry),
+                        ),
+                        const SizedBox(width: 16),
+                        // Delete button
+                        IconButton(
+                          icon: const Icon(Icons.delete, size: 18),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Entry'),
+                                content: const Text('Are you sure you want to delete this entry?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            
+                            if (confirm == true) {
+                              deleteEntry(entry.id);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

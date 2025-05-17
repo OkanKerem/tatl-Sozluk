@@ -346,4 +346,73 @@ class EntryProvider extends ChangeNotifier {
       return [];
     }
   }
+  
+  // Update entry content
+  Future<bool> updateEntry(String entryId, String newTitle, String newDescription) async {
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Check if the current user is the author
+      final user = _auth.currentUser;
+      if (user == null) return false;
+      
+      // Get the entry to update
+      final entry = await getEntryById(entryId);
+      if (entry == null) return false;
+      
+      // Verify the current user is the author
+      if (entry.userId != user.uid) {
+        print('User is not authorized to edit this entry');
+        return false;
+      }
+      
+      // Update in Firestore
+      await _firestore.collection(_collectionName).doc(entryId).update({
+        'title': newTitle,
+        'title_lowercase': newTitle.toLowerCase(),
+        'description': newDescription,
+      });
+      
+      // Update local entries
+      final userEntryIndex = _userEntries.indexWhere((e) => e.id == entryId);
+      if (userEntryIndex != -1) {
+        final updated = Entry(
+          id: entry.id,
+          title: newTitle,
+          description: newDescription,
+          author: entry.author,
+          userId: entry.userId,
+          createdAt: entry.createdAt,
+          likedBy: entry.likedBy,
+          comments: entry.comments,
+        );
+        _userEntries[userEntryIndex] = updated;
+      }
+      
+      final allEntryIndex = _allEntries.indexWhere((e) => e.id == entryId);
+      if (allEntryIndex != -1) {
+        final updated = Entry(
+          id: entry.id,
+          title: newTitle,
+          description: newDescription,
+          author: entry.author,
+          userId: entry.userId,
+          createdAt: entry.createdAt,
+          likedBy: entry.likedBy,
+          comments: entry.comments,
+        );
+        _allEntries[allEntryIndex] = updated;
+      }
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('Error updating entry: $e');
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 } 

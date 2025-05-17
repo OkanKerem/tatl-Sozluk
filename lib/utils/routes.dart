@@ -10,6 +10,7 @@ import 'package:tatli_sozluk/search_page.dart';
 import 'package:tatli_sozluk/pages/popular_entries_page.dart';
 import 'package:tatli_sozluk/pages/random_entry_page.dart';
 import 'package:tatli_sozluk/pages/other_profile_page.dart';
+import 'package:tatli_sozluk/pages/message_list_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AppRoutes {
@@ -20,7 +21,7 @@ class AppRoutes {
     '/main_page':(context)=> const MainPage(),
     '/login':(context)=>const LoginPage(),
     '/signin': (context) => const SignInScreen(),
-    '/dm': (context) => const DmPage(),
+    '/messages': (context) => const MessageListPage(),
     '/search' :(context) => const SearchPage(),
     '/popular_entries': (context) => const PopularEntriesPage(),
     '/random_entries': (context) => const RandomEntryPage(),
@@ -30,6 +31,25 @@ class AppRoutes {
   
   // Navigate to pages with parameters
   static Route<dynamic>? generateRoute(RouteSettings settings) {
+    // Handle direct message page with receiverId and receiverName
+    if (settings.name == '/dm') {
+      final args = settings.arguments;
+      if (args is Map<String, dynamic> && 
+          args.containsKey('receiverId') && 
+          args.containsKey('receiverName')) {
+        return MaterialPageRoute(
+          builder: (context) => DmPage(
+            receiverId: args['receiverId'],
+            receiverName: args['receiverName'],
+          ),
+        );
+      }
+      // If no valid params provided, redirect to message list
+      return MaterialPageRoute(
+        builder: (context) => const MessageListPage(),
+      );
+    }
+    
     // Handle entry detail page with entryId
     if (settings.name == '/entry_detail') {
       // Check if arguments contain entryId
