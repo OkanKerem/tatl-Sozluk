@@ -1,6 +1,19 @@
-# tatli_sozluk
+# Tatlı Sözlük
 
-A new Flutter project.
+A modern social dictionary application built with Flutter and Firebase.
+
+## Features
+
+- User authentication
+- Create and browse entries
+- Comment on entries
+- Like entries and comments
+- Profile management
+- Search functionality
+
+## Contributors
+
+- oguzkarcan
 
 ## Getting Started
 
