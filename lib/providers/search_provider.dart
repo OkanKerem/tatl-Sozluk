@@ -1,20 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tatli_sozluk/models/entry_model.dart';
+import 'package:tatli_sozluk/providers/entry_provider.dart';
 
-class SearchProvider extends ChangeNotifier {
+class SearchProvider with ChangeNotifier {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Entry> _searchResults = [];
-  String _searchQuery = '';
   bool _isLoading = false;
   bool _hasSearched = false;
+  String _searchQuery = '';
 
   // Getters
   List<Entry> get searchResults => _searchResults;
   String get searchQuery => _searchQuery;
   bool get isLoading => _isLoading;
   bool get hasSearched => _hasSearched;
-
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   void setSearchQuery(String query) {
     _searchQuery = query;
@@ -30,7 +30,7 @@ class SearchProvider extends ChangeNotifier {
 
   // 🔍 Search entries by title (from 'posts')
   Future<void> searchEntries(String query) async {
-    if (query.trim().isEmpty) {
+    if (query.isEmpty) {
       _searchResults = [];
       _hasSearched = false;
       notifyListeners();
@@ -46,54 +46,39 @@ class SearchProvider extends ChangeNotifier {
       // Convert query to lowercase for case-insensitive search
       final lowercaseQuery = query.toLowerCase();
       
-      // 🔍 Use title_lowercase field for case-insensitive search
+      // Get all entries
       final querySnapshot = await _firestore
           .collection('posts')
-          .orderBy('title_lowercase')
-          .startAt([lowercaseQuery])
-          .endAt(['$lowercaseQuery\uf8ff'])
           .get();
 
-      // 🔍 Contains match using lowercase field
-      final containsQuerySnapshot = await _firestore
-          .collection('posts')
-          .where('title_lowercase', isGreaterThanOrEqualTo: lowercaseQuery)
-          .where('title_lowercase', isLessThanOrEqualTo: '$lowercaseQuery\uf8ff')
-          .get();
+      // Filter entries that contain the query in their title
+      _searchResults = querySnapshot.docs
+          .map((doc) => Entry.fromFirestore(doc))
+          .where((entry) => entry.title.toLowerCase().contains(lowercaseQuery))
+          .toList();
 
-      final Map<String, Entry> uniqueResults = {};
-
-      for (final doc in querySnapshot.docs) {
-        final entry = Entry.fromFirestore(doc);
-        uniqueResults[entry.id] = entry;
-      }
-
-      for (final doc in containsQuerySnapshot.docs) {
-        final entry = Entry.fromFirestore(doc);
-        uniqueResults[entry.id] = entry;
-      }
-
-      _searchResults = uniqueResults.values.toList();
-
-      // Sort results - use case-insensitive comparison
+      // Sort results by relevance (exact matches first)
       _searchResults.sort((a, b) {
-        final aExact = a.title.toLowerCase() == lowercaseQuery;
-        final bExact = b.title.toLowerCase() == lowercaseQuery;
-
+        final aTitle = a.title.toLowerCase();
+        final bTitle = b.title.toLowerCase();
+        
+        // Exact match
+        final aExact = aTitle == lowercaseQuery;
+        final bExact = bTitle == lowercaseQuery;
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
-
-        final aStarts = a.title.toLowerCase().startsWith(lowercaseQuery);
-        final bStarts = b.title.toLowerCase().startsWith(lowercaseQuery);
-
+        
+        // Starts with
+        final aStarts = aTitle.startsWith(lowercaseQuery);
+        final bStarts = bTitle.startsWith(lowercaseQuery);
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;
-
-        return b.likedBy.length.compareTo(a.likedBy.length);
+        
+        return 0;
       });
-
     } catch (e) {
       print('Error searching entries: $e');
+      _searchResults = [];
     } finally {
       _isLoading = false;
       notifyListeners();

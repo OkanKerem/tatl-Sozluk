@@ -30,7 +30,7 @@ class Entry {
       description: data['description'] ?? '',
       author: data['author'] ?? '',
       userId: data['userId'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       likedBy: List<String>.from(data['likedBy'] ?? []),
       comments: List<String>.from(data['comments'] ?? []),
     );

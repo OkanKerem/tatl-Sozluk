@@ -39,7 +39,7 @@ Future<void> main() async {
         create: (context) => CommentProvider(),
       ),
       ChangeNotifierProvider(
-        create: (context) => SearchProvider(), 
+        create: (context) => SearchProvider(),
       ),
     ],
     child: const MyApp(),

@@ -59,11 +59,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // List of available asset images for avatars
   final List<String> _avatarAssets = [
-    'assets/Images/girlAvatar.png',
     'assets/Images/boyAvatar.png',
     'assets/Images/girlAvatar.png',
-    'assets/Images/boyAvatar.png',
-    'assets/Images/boyAvatar.png'
+    'assets/Images/pp1.png',
+    'assets/Images/pp2.png',
+    'assets/Images/pp3.png',
   ];
 
   // Function to handle profile photo selection

@@ -20,9 +20,9 @@ class _SettingsPageState extends State<SettingsPage> {
   final List<String> _avatarAssets = [
     'assets/Images/girlAvatar.png',
     'assets/Images/boyAvatar.png',
-    'assets/Images/girlAvatar.png',
-    'assets/Images/boyAvatar.png',
-    'assets/Images/boyAvatar.png'
+    'assets/Images/pp1.png',
+    'assets/Images/pp2.png',
+    'assets/Images/pp3.png'
   ];
 
   @override
@@ -245,12 +245,18 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child:const Icon(Icons.arrow_back, size: 28)
+            onTap: () async {
+              // Reload user data before popping
+              await Provider.of<UserProvider>(context, listen: false).loadUserData();
+              if (mounted) {
+                Navigator.pushReplacementNamed(context, '/profile');
+              }
+            },
+            child: const Icon(Icons.arrow_back, size: 28)
           ),
           const SizedBox(width: 16),
           Text(
-            'Ayarlar',
+            'Settings',
             style: AppFonts.usernameText.copyWith(fontSize: 22),
           ),
         ],

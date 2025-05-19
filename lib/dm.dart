@@ -94,13 +94,7 @@ class _DmPageState extends State<DmPage> {
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 12),
-          const CircleAvatar(child: Icon(Icons.person)),
-          const SizedBox(width: 10),
           Text(widget.receiverName, style: AppFonts.usernameText),
-          const Spacer(),
-          const Icon(Icons.card_giftcard),
-          const SizedBox(width: 10),
-          const Icon(Icons.mail_outline),
         ],
       ),
     );
@@ -118,7 +112,7 @@ class _DmPageState extends State<DmPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           }
@@ -126,7 +120,7 @@ class _DmPageState extends State<DmPage> {
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text("No messages yet"));
           }
-          
+
           final messages = snapshot.data!;
           
           return ListView.builder(
@@ -195,8 +189,6 @@ class _DmPageState extends State<DmPage> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          const Icon(Icons.add, color: Colors.white),
-          const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: _messageController,
