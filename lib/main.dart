@@ -9,13 +9,14 @@ import 'package:tatli_sozluk/providers/comment_provider.dart';
 import 'package:tatli_sozluk/providers/search_provider.dart';
 
 Future<void> main() async {
-  // Ensure Flutter bindings are initialized
+  // Ensure Flutter bindings are initialized before any platform interaction
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Load environment variables
+  // Load environment variables from .env file
   await dotenv.load(fileName: ".env");
   
-  // Initialize Firebase with options from environment variables
+  // Initialize Firebase with configuration options from environment variables
+  // This ensures secure storage of sensitive API keys
   await Firebase.initializeApp(
     options: FirebaseOptions(
       apiKey: dotenv.env['FIREBASE_API_KEY'] ?? '',
@@ -26,18 +27,23 @@ Future<void> main() async {
     ),
   );
   
+  // Initialize the app with all required providers
   runApp(
   MultiProvider(
     providers: [
+      // User authentication and profile management
       ChangeNotifierProvider(
         create: (context) => UserProvider(),
       ),
+      // Entry data management
       ChangeNotifierProvider(
         create: (context) => EntryProvider(),
       ),
+      // Comment handling
       ChangeNotifierProvider(
         create: (context) => CommentProvider(),
       ),
+      // Search functionality
       ChangeNotifierProvider(
         create: (context) => SearchProvider(),
       ),
@@ -52,8 +58,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //  Confirming SearchProvider is accessible from context:
+    // Initialize SearchProvider for global access throughout the app
     final searchProvider = Provider.of<SearchProvider>(context, listen: false);
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Tatlı Sözlük',
