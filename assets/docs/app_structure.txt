@@ -1,0 +1,53 @@
+Tatlı Sözlük Application Structure
+============================
+
+Project Root
+│
+├── android/                 # Android-specific configuration
+│
+├── ios/                     # iOS-specific configuration
+│
+├── web/                     # Web version configuration
+│
+├── assets/                  # Static assets
+│   ├── Images/              # Image assets
+│   └── docs/                # Documentation assets
+│
+├── lib/                     # Dart source code
+│   ├── main.dart            # Entry point
+│   │
+│   ├── models/              # Data models
+│   │   ├── user_model.dart  # User data model
+│   │   ├── entry_model.dart # Entry data model
+│   │   └── comment_model.dart # Comment data model
+│   │
+│   ├── pages/               # UI screens
+│   │   ├── main_page.dart   # Main content page
+│   │   ├── profile_part.dart # User profile page
+│   │   └── entry_detail.dart # Entry details page
+│   │
+│   ├── providers/           # State management
+│   │   ├── user_provider.dart # User state management
+│   │   ├── entry_provider.dart # Entry state management
+│   │   └── comment_provider.dart # Comment state management
+│   │
+│   ├── services/            # Backend services
+│   │   ├── auth_service.dart # Authentication services
+│   │   └── firestore_service.dart # Database services
+│   │
+│   └── utils/               # Utilities
+│       ├── colors.dart      # Color constants
+│       ├── fonts.dart       # Typography styles
+│       └── routes.dart      # App navigation routes
+│
+├── test/                    # Test files
+│
+├── docs/                    # Documentation
+│   ├── ARCHITECTURE.md      # Architecture overview
+│   ├── API_DOCUMENTATION.md # API documentation
+│   └── CONTRIBUTING.md      # Contribution guidelines
+│
+├── .env                     # Environment variables
+├── .env.example             # Example environment config
+├── pubspec.yaml             # Dependencies
+└── README.md                # Project overview 
