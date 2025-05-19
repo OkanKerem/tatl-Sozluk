@@ -80,7 +80,7 @@ class CommentProvider extends ChangeNotifier {
   }
   
   // Yeni yorum ekle
-  Future<bool> addComment(String entryId, String text, String authorName) async {
+  Future<bool> addComment(String entryId, String text, String userId) async {
     _isLoading = true;
     notifyListeners();
     
@@ -91,7 +91,7 @@ class CommentProvider extends ChangeNotifier {
           id: '', // Firestore otomatik oluşturacak
           entryId: entryId,
           text: text,
-          author: authorName,
+          author: userId,
           userId: user.uid,
           createdAt: DateTime.now(),
           likedBy: [],
@@ -110,7 +110,7 @@ class CommentProvider extends ChangeNotifier {
           id: docRef.id,
           entryId: entryId,
           text: text,
-          author: authorName,
+          author: userId,
           userId: user.uid,
           createdAt: DateTime.now(),
           likedBy: [],

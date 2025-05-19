@@ -71,7 +71,6 @@ class _MessageListPageState extends State<MessageListPage> {
                 builder: (context, userSnapshot) {
                   if (!userSnapshot.hasData) {
                     return const ListTile(
-                      leading: CircleAvatar(child: Icon(Icons.person)),
                       title: Text('Loading...'),
                     );
                   }
@@ -104,7 +103,6 @@ class _MessageListPageState extends State<MessageListPage> {
                           }
                           
                           return ListTile(
-                            leading: const CircleAvatar(child: Icon(Icons.person)),
                             title: Text(
                               username,
                               style: AppFonts.usernameText,

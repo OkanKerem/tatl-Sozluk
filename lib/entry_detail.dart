@@ -77,10 +77,11 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
       final commentProvider = Provider.of<CommentProvider>(context, listen: false);
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       
+      // Use userId directly
       final success = await commentProvider.addComment(
         widget.entryId,
         commentText,
-        userProvider.username,
+        userProvider.userId,
       );
       
       if (success && mounted) {
@@ -145,23 +146,19 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
   }
 
   Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              entry?.title ?? 'Entry Detail',
-              style: AppFonts.entryTitleText,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.black),
+        onPressed: () => Navigator.pushReplacementNamed(context, '/main_page'),
+      ),
+      title: Text(
+        'Entry Detail',
+        style: AppFonts.entryTitleText.copyWith(
+          color: Colors.black,
+          fontSize: 20,
+        ),
       ),
     );
   }
@@ -219,25 +216,31 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
                   );
                 },
               ),
-              GestureDetector(
-                onTap: () {
-                  // Navigate to the author's profile
-                  Navigator.pushNamed(
-                    context,
-                    '/user_profile',
-                    arguments: entry!.userId,
+              FutureBuilder<Map<String, dynamic>?>(
+                future: Provider.of<UserProvider>(context, listen: false).getUserById(entry!.author),
+                builder: (context, snapshot) {
+                  final authorName = snapshot.data?['nickname'] ?? 'Unknown User';
+                  return GestureDetector(
+                    onTap: () {
+                      // Navigate to the author's profile
+                      Navigator.pushNamed(
+                        context,
+                        '/user_profile',
+                        arguments: entry!.userId,
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        Text(
+                          'by $authorName',
+                          style: AppFonts.usernameText.copyWith(
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
-                child: Row(
-                  children: [
-                    Text(
-                      'by ${entry!.author}',
-                      style: AppFonts.usernameText.copyWith(
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -288,106 +291,121 @@ class _EntryDetailPageState extends State<EntryDetailPage> {
         final isLiked = comment.likedBy.contains(userProvider.userId);
         final isOwnComment = comment.userId == userProvider.userId;
         
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/user_profile',
-                        arguments: comment.userId,
-                      );
-                    },
-                    child: Text(
-                      comment.author,
-                      style: AppFonts.usernameText.copyWith(
-                        decoration: TextDecoration.underline,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  if (isOwnComment)
-                    IconButton(
-                      icon: const Icon(Icons.delete, size: 18, color: Colors.grey),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Delete Comment'),
-                            content: const Text('Are you sure you want to delete this comment?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Delete'),
-                              ),
-                            ],
-                          ),
-                        );
-                        
-                        if (confirm == true && mounted) {
-                          await commentProvider.deleteComment(comment.id);
-                        }
-                      },
-                    ),
-                ],
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: userProvider.getUserById(comment.author),
+          builder: (context, snapshot) {
+            final authorName = snapshot.data?['nickname'] ?? 'Unknown User';
+            
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                comment.text,
-                style: AppFonts.entryBodyText.copyWith(fontSize: 15),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${comment.createdAt.day}/${comment.createdAt.month}/${comment.createdAt.year}',
-                    style: AppFonts.entryBodyText.copyWith(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
                   Row(
                     children: [
-                      InkWell(
-                        onTap: () {
-                          commentProvider.toggleLike(comment.id);
-                        },
-                        child: Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked ? Colors.red : Colors.grey,
-                          size: 16,
+                      Text(
+                        'by ',
+                        style: AppFonts.entryBodyText.copyWith(
+                          fontSize: 14,
+                          color: Colors.grey[600],
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/user_profile',
+                            arguments: comment.userId,
+                          );
+                        },
+                        child: Text(
+                          authorName,
+                          style: AppFonts.usernameText.copyWith(
+                            decoration: TextDecoration.underline,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (isOwnComment)
+                        IconButton(
+                          icon: const Icon(Icons.delete, size: 18, color: Colors.grey),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Comment'),
+                                content: const Text('Are you sure you want to delete this comment?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            
+                            if (confirm == true && mounted) {
+                              await commentProvider.deleteComment(comment.id);
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    comment.text,
+                    style: AppFonts.entryBodyText.copyWith(fontSize: 15),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       Text(
-                        '${comment.likedBy.length}',
-                        style: AppFonts.entryBodyText.copyWith(fontSize: 12),
+                        '${comment.createdAt.day}/${comment.createdAt.month}/${comment.createdAt.year}',
+                        style: AppFonts.entryBodyText.copyWith(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              commentProvider.toggleLike(comment.id);
+                            },
+                            child: Icon(
+                              isLiked ? Icons.favorite : Icons.favorite_border,
+                              color: isLiked ? Colors.red : Colors.grey,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${comment.likedBy.length}',
+                            style: AppFonts.entryBodyText.copyWith(fontSize: 12),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

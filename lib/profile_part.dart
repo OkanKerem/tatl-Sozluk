@@ -16,13 +16,13 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Avatar listesi - sign_in.dart ile aynı olmalı
+
   final List<String> _avatarAssets = [
-    'assets/Images/girlAvatar.png',
     'assets/Images/boyAvatar.png',
     'assets/Images/girlAvatar.png',
-    'assets/Images/boyAvatar.png',
-    'assets/Images/boyAvatar.png'
+    'assets/Images/pp1.png',
+    'assets/Images/pp2.png',
+    'assets/Images/pp3.png',
   ];
   
   final _titleController = TextEditingController();
@@ -309,6 +309,25 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Widget _buildProfilePictureSelector() {
+    return Column(
+      children: [
+        const Text('Select Profile Picture'),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildProfilePictureOption('assets/Images/botAvatar.png'),
+            _buildProfilePictureOption('assets/Images/girlAvatar.png'),
+            _buildProfilePictureOption('assets/Images/pp1.png'),
+            _buildProfilePictureOption('assets/Images/pp2.png'),
+            _buildProfilePictureOption('assets/Images/pp3.png'),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -320,7 +339,13 @@ class _ProfilePageState extends State<ProfilePage> {
         title: Text('Profile', style: AppFonts.usernameText),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            // Reload user data before returning to main page
+            await Provider.of<UserProvider>(context, listen: false).loadUserData();
+            if (mounted) {
+              Navigator.pushReplacementNamed(context, '/main_page');
+            }
+          },
         ),
         actions: isOwnProfile ? [
           IconButton(
@@ -505,6 +530,21 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfilePictureOption(String assetPath) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          profilePictureIndex = _avatarAssets.indexOf(assetPath) + 1;
+        });
+      },
+      child: CircleAvatar(
+        radius: 40,
+        backgroundColor: Colors.grey[200],
+        backgroundImage: AssetImage(assetPath),
       ),
     );
   }

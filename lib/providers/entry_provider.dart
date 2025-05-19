@@ -117,7 +117,7 @@ class EntryProvider extends ChangeNotifier {
           id: '', // Firestore otomatik oluşturacak
           title: title,
           description: description,
-          author: userProvider.username,
+          author: user.uid,
           userId: user.uid,
           createdAt: DateTime.now(),
           likedBy: [],
@@ -132,7 +132,7 @@ class EntryProvider extends ChangeNotifier {
           id: docRef.id,
           title: title,
           description: description,
-          author: userProvider.username,
+          author: user.uid,
           userId: user.uid,
           createdAt: DateTime.now(),
           likedBy: [],
@@ -413,6 +413,16 @@ class EntryProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+  
+  Future<List<Entry>> getAllEntries() async {
+    try {
+      final querySnapshot = await _firestore.collection('posts').get();
+      return querySnapshot.docs.map((doc) => Entry.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('Error getting all entries: $e');
+      return [];
     }
   }
 } 

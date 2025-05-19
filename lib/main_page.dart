@@ -8,6 +8,7 @@ import 'package:tatli_sozluk/dm.dart';
 import 'package:tatli_sozluk/profile_part.dart';
 import 'package:tatli_sozluk/providers/entry_provider.dart';
 import 'package:tatli_sozluk/models/entry_model.dart';
+import 'package:tatli_sozluk/providers/user_provider.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -239,32 +240,30 @@ class _MainPageState extends State<MainPage> {
                       arguments: entry.userId,
                     );
                   },
-                  child: Text(
-                    'by ${entry.author}',
-                    style: AppFonts.entryBodyText.copyWith(
-                      color: Colors.grey,
-                      fontSize: 14,
-                      decoration: TextDecoration.underline,
-                    ),
+                  child: FutureBuilder<Map<String, dynamic>?>(
+                    future: Provider.of<UserProvider>(context, listen: false).getUserById(entry.author),
+                    builder: (context, snapshot) {
+                      final authorName = snapshot.data?['nickname'] ?? 'Unknown User';
+                      return Text(
+                        'by $authorName',
+                        style: AppFonts.entryBodyText.copyWith(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          decoration: TextDecoration.underline,
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Row(
                   children: [
-                    Text(
-                      '${entry.likedBy.length} likes',
-                      style: AppFonts.entryBodyText.copyWith(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${entry.comments.length} comments',
-                      style: AppFonts.entryBodyText.copyWith(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
+                    Icon(Icons.favorite, color: Colors.red, size: 16),
+                    const SizedBox(width: 4),
+                    Text('${entry.likedBy.length}'),
+                    const SizedBox(width: 16),
+                    Icon(Icons.comment, color: Colors.grey[600], size: 16),
+                    const SizedBox(width: 4),
+                    Text('${entry.comments.length}'),
                   ],
                 ),
               ],

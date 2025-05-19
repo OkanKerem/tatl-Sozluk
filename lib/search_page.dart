@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tatli_sozluk/providers/search_provider.dart';
+import 'package:tatli_sozluk/providers/user_provider.dart';
 import 'package:tatli_sozluk/utils/fonts.dart';
 import 'package:tatli_sozluk/entry_detail.dart';
 import 'package:tatli_sozluk/models/entry_model.dart';
+import 'package:tatli_sozluk/providers/entry_provider.dart';
 
 class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
@@ -132,9 +134,15 @@ class SearchPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'by ${entry.author}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                FutureBuilder<Map<String, dynamic>?>(
+                  future: Provider.of<UserProvider>(context, listen: false).getUserById(entry.author),
+                  builder: (context, snapshot) {
+                    final authorName = snapshot.data?['nickname'] ?? 'Unknown User';
+                    return Text(
+                      'by $authorName',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    );
+                  },
                 ),
                 Row(
                   children: [
